@@ -4,8 +4,14 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copiar archivos de dependencias (verificar que existan)
-COPY package.json package-lock.json* ./
+# Copiar archivos de dependencias
+# Este Dockerfile asume que el build context es fitness-app-frontend/
+# Si usas Root Directory vacío en Render, asegúrate de que el Dockerfile Path sea fitness-app-frontend/Dockerfile
+COPY package.json ./
+COPY package-lock.json* ./
+
+# Verificar que package.json existe antes de instalar
+RUN test -f package.json || (echo "ERROR: package.json not found!" && exit 1)
 
 # Instalar todas las dependencias (incluyendo devDependencies para el build)
 # Usar npm install en lugar de npm ci para compatibilidad si no hay package-lock.json
