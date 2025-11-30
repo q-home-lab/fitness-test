@@ -11,7 +11,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependencias
-RUN npm ci --only=production
+# Usar npm install en lugar de npm ci para compatibilidad si no hay package-lock.json
+RUN npm install --omit=dev
 
 # Copiar el resto del código
 COPY . .
