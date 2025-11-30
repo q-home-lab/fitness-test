@@ -1,0 +1,11 @@
+# Archivos y directorios a ignorar en el despliegue de Render
+node_modules/
+.env
+.env.local
+*.log
+coverage/
+.DS_Store
+tests/
+*.test.js
+*.spec.js
+

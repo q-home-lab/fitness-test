@@ -1,0 +1,53 @@
+# Render Blueprint Configuration
+# Este archivo permite crear servicios directamente desde el repositorio
+# 
+# OPCIÓN 1: Sin Docker (Node.js nativo)
+# OPCIÓN 2: Con Docker (cambia env: node por env: docker)
+
+services:
+  # Backend API - Opción sin Docker
+  - type: web
+    name: fitness-app-backend
+    env: node  # Cambia a 'docker' para usar Docker
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run db:migrate
+    startCommand: node index.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # DATABASE_URL y JWT_SECRET deben configurarse manualmente en el dashboard de Render
+      # usando la Internal Database URL del servicio PostgreSQL
+
+  # Backend API - Opción con Docker (descomenta para usar)
+  # - type: web
+  #   name: fitness-app-backend-docker
+  #   env: docker
+  #   region: oregon
+  #   plan: free
+  #   dockerfilePath: fitness-app-backend/Dockerfile
+  #   dockerContext: fitness-app-backend
+  #   healthCheckPath: /
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: PORT
+  #       value: 4000
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: fitness-app-db
+  #         property: connectionString
+  #     - key: JWT_SECRET
+  #       generateValue: true
+  #     - key: FRONTEND_URL
+  #       value: https://fitness-app-frontend.onrender.com
+
+databases:
+  - name: fitness-app-db
+    databaseName: fitnessdb
+    user: fitnessuser
+    plan: free
+    postgresMajorVersion: 16

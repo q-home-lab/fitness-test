@@ -1,0 +1,104 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1764194537972,
+      "tag": "0000_good_ogun",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764242498163,
+      "tag": "0001_luxuriant_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764271327642,
+      "tag": "0002_eminent_wong",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764272106854,
+      "tag": "0003_grey_lady_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1764275454023,
+      "tag": "0004_tense_donald_blake",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764277433378,
+      "tag": "0005_luxuriant_meteorite",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1764327706469,
+      "tag": "0006_sharp_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1764335793615,
+      "tag": "0007_mixed_charles_xavier",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1764424474920,
+      "tag": "0008_nebulous_obadiah_stane",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1764431104054,
+      "tag": "0009_burly_bloodstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1764443820140,
+      "tag": "0010_bent_wolf_cub",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1764444304287,
+      "tag": "0011_blue_james_howlett",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1764444483284,
+      "tag": "0012_dusty_naoko",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1764444547909,
+      "tag": "0013_workable_maelstrom",
+      "breakpoints": true
+    }
+  ]
+}

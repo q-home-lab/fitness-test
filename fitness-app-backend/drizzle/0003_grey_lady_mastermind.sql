@@ -1,0 +1,1 @@
+ALTER TABLE "exercises" ADD COLUMN "gif_url" varchar(500);

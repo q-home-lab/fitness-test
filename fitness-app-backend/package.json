@@ -1,0 +1,59 @@
+{
+  "name": "fitness-app-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --testEnvironment=node --coverage",
+    "test:watch": "jest --watch",
+    "test:routes": "jest routes/__tests__",
+    "test:utils": "jest utils/__tests__",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node ./db/migrate.js",
+    "seed:exercises": "node ./scripts/seed-exercises.js",
+    "populate:exercises": "node ./scripts/populate-free-exercise-db.js",
+    "remove:exercises:no-images": "node ./scripts/remove-exercises-without-images.js",
+    "clean:exercises:final": "node ./scripts/clean-invalid-exercises-final.js",
+    "remove:all:no-valid-images": "node ./scripts/remove-all-exercises-without-valid-images.js",
+    "remove:exercises:by-wger-ids": "node ./scripts/remove-exercises-by-wger-ids.js",
+    "remove:all:wger-exercises": "node ./scripts/remove-all-wger-exercises.js",
+    "seed:foods": "node ./scripts/seed-common-foods.js",
+    "seed:foods:extended": "node ./scripts/seed-extended-foods.js",
+    "seed:foods:openfoodfacts": "node ./scripts/seed-openfoodfacts.js",
+    "sync:wger": "node ./scripts/sync-wger-exercises.js",
+    "create:test-user": "node ./scripts/create-test-user.js",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.44.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.4.1",
+    "express-validator": "^7.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-cache": "^5.1.2",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.16.3",
+    "winston": "^3.15.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "drizzle-kit": "^0.31.7",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

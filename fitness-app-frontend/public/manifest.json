@@ -1,0 +1,50 @@
+{
+  "name": "Fitness App",
+  "short_name": "Fitness",
+  "description": "Aplicación de seguimiento de fitness, nutrición y entrenamiento",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF3E1",
+  "theme_color": "#D45A0F",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver tu resumen diario",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Rutinas",
+      "short_name": "Rutinas",
+      "description": "Ver tus rutinas de entrenamiento",
+      "url": "/routines",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dieta",
+      "short_name": "Dieta",
+      "description": "Registrar tus comidas",
+      "url": "/diet",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+

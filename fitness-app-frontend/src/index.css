@@ -1,0 +1,375 @@
+@import "tailwindcss";
+
+/* Utilidades de accesibilidad */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible mejorado para navegación por teclado */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip link para navegación por teclado */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #3b82f6;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 100;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ========================================
+   VARIABLES CSS - PALETA DE COLORES
+   ======================================== */
+:root {
+  /* Modo Claro - Paleta Personalizada */
+  --color-text: #222222;
+  --color-background: #FAF3E1;
+  --color-primary: #D45A0F;
+  --color-secondary: #F5E7C6;
+  --color-accent: #86c4c2;
+  --color-surface: #FFFFFF;
+  --color-border: #E5D9C8;
+}
+
+.dark {
+  /* Modo Oscuro */
+  --color-text: #f9fafb;
+  --color-background: #000000;
+  --color-primary: #3b82f6;
+  --color-secondary: #111827;
+  --color-accent: #10b981;
+  --color-surface: #111827;
+  --color-border: #374151;
+}
+
+/* ========================================
+   RESET Y BASE
+   ======================================== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* CRÍTICO: Forzar colores de la paleta en modo claro */
+html:not(.dark) .bg-white,
+html:not(.dark) [class*="bg-white"] {
+  background-color: var(--color-surface) !important;
+}
+
+html:not(.dark) [class*="bg-\[#fafafa\]"] {
+  background-color: var(--color-background) !important;
+}
+
+html:not(.dark) [class*="bg-\[#FAF3E1\]"] {
+  background-color: var(--color-background) !important;
+}
+
+/* Prevenir que dark:bg-gray-900 se aplique cuando NO hay clase dark */
+html:not(.dark) [class*="dark:bg-gray-900"] {
+  background-color: var(--color-surface) !important;
+}
+
+html:not(.dark) [class*="dark:bg-black"] {
+  background-color: var(--color-background) !important;
+}
+
+/* CRÍTICO: Aplicar colores de texto de la paleta en modo claro */
+html:not(.dark) .text-gray-900,
+html:not(.dark) [class*="text-gray-900"] {
+  color: var(--color-text) !important;
+}
+
+html:not(.dark) .text-white,
+html:not(.dark) [class*="text-white"] {
+  color: var(--color-text) !important;
+}
+
+html:not(.dark) .text-gray-600,
+html:not(.dark) [class*="text-gray-600"] {
+  color: #444444 !important; /* Mejor contraste - gris más oscuro */
+}
+
+html:not(.dark) .text-gray-500,
+html:not(.dark) [class*="text-gray-500"] {
+  color: #555555 !important; /* Mejor contraste - gris medio oscuro */
+}
+
+html:not(.dark) .text-gray-400,
+html:not(.dark) [class*="text-gray-400"] {
+  color: #666666 !important; /* Mejor contraste - gris visible */
+}
+
+html:not(.dark) .text-gray-300,
+html:not(.dark) [class*="text-gray-300"] {
+  color: #777777 !important; /* Mejor contraste */
+}
+
+html:not(.dark) .text-gray-700,
+html:not(.dark) [class*="text-gray-700"] {
+  color: #444444 !important; /* Mejor contraste - similar a gray-600 */
+}
+
+/* Placeholders con mejor contraste */
+html:not(.dark) [class*="placeholder:text-gray"],
+html:not(.dark) ::placeholder {
+  color: #888888 !important; /* Mejor contraste para placeholders */
+}
+
+/* Fondos con colores de la paleta */
+html:not(.dark) .bg-gray-50,
+html:not(.dark) [class*="bg-gray-50"] {
+  background-color: var(--color-secondary) !important;
+}
+
+html:not(.dark) .bg-gray-100,
+html:not(.dark) [class*="bg-gray-100"] {
+  background-color: var(--color-secondary) !important;
+}
+
+html:not(.dark) .bg-gray-800,
+html:not(.dark) [class*="bg-gray-800"] {
+  background-color: var(--color-secondary) !important;
+}
+
+html:not(.dark) .bg-gray-900,
+html:not(.dark) [class*="bg-gray-900"] {
+  background-color: var(--color-surface) !important;
+}
+
+/* Bordes con color de la paleta */
+html:not(.dark) .border-gray-200,
+html:not(.dark) [class*="border-gray-200"] {
+  border-color: var(--color-border) !important;
+}
+
+html:not(.dark) .border-gray-300,
+html:not(.dark) [class*="border-gray-300"] {
+  border-color: var(--color-border) !important;
+}
+
+/* Colores primarios - Usar la paleta personalizada */
+html:not(.dark) .bg-blue-600,
+html:not(.dark) [class*="bg-blue-600"],
+html:not(.dark) .bg-blue-500,
+html:not(.dark) [class*="bg-blue-500"],
+html:not(.dark) .bg-blue-400,
+html:not(.dark) [class*="bg-blue-400"],
+html:not(.dark) .bg-blue-700,
+html:not(.dark) [class*="bg-blue-700"] {
+  background-color: var(--color-primary) !important;
+}
+
+html:not(.dark) .text-blue-600,
+html:not(.dark) [class*="text-blue-600"],
+html:not(.dark) .text-blue-500,
+html:not(.dark) [class*="text-blue-500"],
+html:not(.dark) .text-blue-400,
+html:not(.dark) [class*="text-blue-400"] {
+  color: var(--color-primary) !important;
+}
+
+html:not(.dark) .border-blue-600,
+html:not(.dark) [class*="border-blue-600"],
+html:not(.dark) .border-blue-500,
+html:not(.dark) [class*="border-blue-500"],
+html:not(.dark) .border-blue-400,
+html:not(.dark) [class*="border-blue-400"] {
+  border-color: var(--color-primary) !important;
+}
+
+/* Focus rings con color primary */
+html:not(.dark) [class*="focus:ring-blue"],
+html:not(.dark) [class*="focus:border-blue"] {
+  --tw-ring-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Hover states con color primary */
+html:not(.dark) .hover\:bg-blue-700,
+html:not(.dark) [class*="hover:bg-blue-700"] {
+  background-color: var(--color-primary) !important;
+  opacity: 0.9;
+}
+
+/* ========================================
+   TIPOGRAFÍA
+   ======================================== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+  margin: 0;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+p {
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Mejora de espaciado consistente */
+.space-y-consistent > * + * {
+  margin-top: 1rem;
+}
+
+.space-y-consistent-lg > * + * {
+  margin-top: 1.5rem;
+}
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-secondary);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 34, 34, 0.25);
+  border-radius: 5px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 34, 34, 0.45);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.25);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.45);
+}
+
+/* ========================================
+   RADIX UI - ESTILOS BÁSICOS
+   ======================================== */
+[data-radix-tabs-trigger] {
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[data-radix-tabs-trigger]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+[data-radix-dialog-overlay] {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: thin;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  background: rgba(34, 34, 34, 0.3);
+  border-radius: 4px;
+}
+
+/* ========================================
+   UTILIDADES
+   ======================================== */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
