@@ -4,8 +4,8 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+# Copiar archivos de dependencias (verificar que existan)
+COPY package.json package-lock.json* ./
 
 # Instalar todas las dependencias (incluyendo devDependencies para el build)
 # Usar npm install en lugar de npm ci para compatibilidad si no hay package-lock.json
