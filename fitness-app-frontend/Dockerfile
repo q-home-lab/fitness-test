@@ -1,6 +1,13 @@
 # Dockerfile para el Frontend (Multi-stage build)
 # Stage 1: Build
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
+
+# Instalar dependencias del sistema necesarias para Tailwind CSS v4 y otras dependencias nativas
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    libc6-compat
 
 WORKDIR /app
 

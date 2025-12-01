@@ -1,5 +1,5 @@
 # Dockerfile para el Backend
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Instalar dependencias del sistema si es necesario
 RUN apk add --no-cache bash
@@ -29,6 +29,6 @@ RUN chmod +x ./docker-entrypoint.sh
 # Exponer el puerto
 EXPOSE 4000
 
-# Usar el script de 
+# Usar el script de entrada
 ENTRYPOINT ["./docker-entrypoint.sh"]
 

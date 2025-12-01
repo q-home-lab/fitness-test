@@ -12,6 +12,3 @@ README.md
 *.md
 .vscode
 .idea
-drizzle/*.sql
-!drizzle/meta
-
