@@ -29,6 +29,6 @@ RUN chmod +x ./docker-entrypoint.sh
 # Exponer el puerto
 EXPOSE 4000
 
-# Usar el script de entrada
+# Usar el script de 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
