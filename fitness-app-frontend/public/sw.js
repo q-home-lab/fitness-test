@@ -2,13 +2,11 @@
 const CACHE_NAME = 'fitness-app-v1';
 const RUNTIME_CACHE = 'fitness-runtime-v1';
 
-// Archivos estáticos para cachear
+// Archivos estáticos para cachear (solo los que existen)
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/manifest.json'
 ];
 
 // Instalación del Service Worker
@@ -17,9 +15,22 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Cacheando archivos estáticos');
-        return cache.addAll(STATIC_ASSETS);
+        // Intentar cachear archivos, pero no fallar si algunos no existen
+        return Promise.allSettled(
+          STATIC_ASSETS.map(url => 
+            cache.add(url).catch(err => {
+              console.warn(`[SW] No se pudo cachear ${url}:`, err);
+              return null;
+            })
+          )
+        );
       })
       .then(() => self.skipWaiting())
+      .catch((error) => {
+        console.error('[SW] Error durante instalación:', error);
+        // Continuar aunque haya errores
+        self.skipWaiting();
+      })
   );
 });
 
@@ -110,8 +121,8 @@ self.addEventListener('message', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Nueva notificación',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/vite.svg',
+    badge: '/vite.svg',
     vibrate: [200, 100, 200],
     tag: 'fitness-notification',
     requireInteraction: false

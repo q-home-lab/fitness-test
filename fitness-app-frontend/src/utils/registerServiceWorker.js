@@ -1,6 +1,7 @@
 // Utilidad para registrar el Service Worker
 export const registerServiceWorker = () => {
-  if ('serviceWorker' in navigator) {
+  // Solo registrar en producción y si el service worker está disponible
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')
@@ -31,7 +32,12 @@ export const registerServiceWorker = () => {
           });
         })
         .catch((error) => {
-          console.error('[SW] Error al registrar Service Worker:', error);
+          // Silenciar error si el service worker no está disponible (no crítico)
+          if (error.message && error.message.includes('404')) {
+            console.warn('[SW] Service Worker no disponible (esto es normal si no está desplegado)');
+          } else {
+            console.error('[SW] Error al registrar Service Worker:', error);
+          }
         });
 
       // Escuchar mensajes del service worker
@@ -62,8 +68,8 @@ export const requestNotificationPermission = async () => {
 export const showLocalNotification = (title, options = {}) => {
   if ('Notification' in window && Notification.permission === 'granted') {
     const notification = new Notification(title, {
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: '/vite.svg',
+      badge: '/vite.svg',
       ...options
     });
 
