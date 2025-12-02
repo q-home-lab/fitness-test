@@ -14,9 +14,13 @@ const RoleSelectionPage = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Si el usuario ya tiene un rol, redirigir
+        // Si el usuario ya tiene un rol, redirigir según el rol
         if (user?.role && user.role !== null) {
-            navigate('/dashboard', { replace: true });
+            if (user.role === 'COACH' || user.role === 'ADMIN') {
+                navigate('/coach/dashboard', { replace: true });
+            } else {
+                navigate('/dashboard', { replace: true });
+            }
         }
     }, [user, navigate]);
 

@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useRef } from 'react';
+import logger from '../utils/logger';
 
 // Hook para usar reCAPTCHA v3
 export const useReCaptcha = (siteKey) => {
@@ -32,7 +33,7 @@ export const useReCaptcha = (siteKey) => {
     }
 
     if (!recaptchaRef.current) {
-      console.warn('reCAPTCHA no está listo');
+      logger.warn('reCAPTCHA no está listo');
       return null;
     }
 
@@ -40,7 +41,7 @@ export const useReCaptcha = (siteKey) => {
       const token = await recaptchaRef.current.execute(siteKey, { action });
       return token;
     } catch (error) {
-      console.error('Error al ejecutar reCAPTCHA:', error);
+      logger.error('Error al ejecutar reCAPTCHA:', error);
       return null;
     }
   };

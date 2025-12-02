@@ -5,6 +5,13 @@ import App from './App.jsx'
 import { BrowserRouter } from 'react-router-dom' 
 import StoreInitializer from './components/StoreInitializer'
 import { registerServiceWorker } from './utils/registerServiceWorker'
+import { useWebVitals } from './hooks/useWebVitals'
+
+// Componente wrapper para Web Vitals
+const WebVitalsTracker = () => {
+  useWebVitals();
+  return null;
+};
 
 // Registrar Service Worker para PWA
 registerServiceWorker();
@@ -12,6 +19,7 @@ registerServiceWorker();
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter> 
+      <WebVitalsTracker />
       <StoreInitializer>
         <App />
       </StoreInitializer>

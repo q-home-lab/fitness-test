@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import Icon from './Icons';
+import logger from '../utils/logger';
 
 const UserTracking = ({ userId }) => {
   const [stats, setStats] = useState(null);
@@ -17,7 +18,7 @@ const UserTracking = ({ userId }) => {
         setStats(response.data);
         setError(null);
       } catch (err) {
-        console.error('Error al cargar estadísticas:', err);
+        logger.error('Error al cargar estadísticas:', err);
         setError('No se pudieron cargar las estadísticas del usuario.');
       } finally {
         setLoading(false);

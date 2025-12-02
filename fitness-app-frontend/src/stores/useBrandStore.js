@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../services/api';
+import logger from '../utils/logger';
 
 const useBrandStore = create((set, get) => ({
   // Estado
@@ -40,7 +41,7 @@ const useBrandStore = create((set, get) => ({
         document.title = settings.brand_name;
       }
     } catch (error) {
-      console.error('Error al cargar configuración de marca:', error);
+      logger.error('Error al cargar configuración de marca:', error);
       // Mantener valores por defecto si hay error
       set({ loading: false });
     }

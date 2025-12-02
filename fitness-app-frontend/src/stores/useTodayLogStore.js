@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '../services/api';
 import { format } from 'date-fns';
+import logger from '../utils/logger';
 
 const useTodayLogStore = create((set, get) => ({
   // Estado
@@ -32,13 +33,84 @@ const useTodayLogStore = create((set, get) => ({
         loading: false,
       });
     } catch (error) {
-      console.error('Error al cargar log diario:', error);
+      logger.error('Error al cargar log diario:', error);
       set({
         log: null,
         mealItems: [],
         dailyExercises: [],
         loading: false,
       });
+    }
+  },
+
+  // Agregar meal item con optimistic update
+  addMealItemOptimistic: async (mealItemData) => {
+    const { mealItems, log } = get();
+    
+    // Crear item temporal con ID temporal
+    const tempId = `temp-${Date.now()}`;
+    const optimisticItem = {
+      ...mealItemData,
+      meal_item_id: tempId,
+      created_at: new Date().toISOString(),
+    };
+
+    // Actualizar UI inmediatamente (optimistic update)
+    set({
+      mealItems: [...mealItems, optimisticItem],
+    });
+
+    try {
+      // Hacer la petición real
+      const response = await api.post('/meal-items', mealItemData);
+      const newItem = response.data.mealItem;
+
+      // Reemplazar item temporal con el real
+      set({
+        mealItems: mealItems.map(item => 
+          item.meal_item_id === tempId ? newItem : item
+        ),
+      });
+
+      return { success: true, mealItem: newItem };
+    } catch (error) {
+      logger.error('Error al agregar meal item:', error);
+      
+      // Revertir cambio optimista
+      set({ mealItems });
+      
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Error al agregar comida',
+      };
+    }
+  },
+
+  // Eliminar meal item con optimistic update
+  removeMealItemOptimistic: async (mealItemId) => {
+    const { mealItems } = get();
+    const itemToRemove = mealItems.find(item => item.meal_item_id === mealItemId);
+    
+    // Remover inmediatamente de UI (optimistic update)
+    set({
+      mealItems: mealItems.filter(item => item.meal_item_id !== mealItemId),
+    });
+
+    try {
+      await api.delete(`/meal-items/${mealItemId}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Error al eliminar meal item:', error);
+      
+      // Revertir cambio optimista
+      if (itemToRemove) {
+        set({ mealItems });
+      }
+      
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Error al eliminar comida',
+      };
     }
   },
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import useUserStore from '../stores/useUserStore';
 import api from '../services/api';
+import logger from '../utils/logger';
 
 // Componente que verifica si el usuario necesita completar el onboarding
 const OnboardingGuard = ({ children }) => {
@@ -22,7 +23,7 @@ const OnboardingGuard = ({ children }) => {
                 const response = await api.get('/onboarding/status');
                 setOnboardingStatus(response.data);
             } catch (error) {
-                console.error('Error al verificar estado de onboarding:', error);
+                logger.error('Error al verificar estado de onboarding:', error);
             } finally {
                 setLoading(false);
             }

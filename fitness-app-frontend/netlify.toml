@@ -1,0 +1,14 @@
+# Configuración de Netlify para el frontend
+[build]
+  base = "fitness-app-frontend"
+  publish = "dist"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "22"
+

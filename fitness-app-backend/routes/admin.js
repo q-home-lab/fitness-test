@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const { body } = require('express-validator');
 
 const authenticateToken = require('./authMiddleware');
 const { db } = require('../db/db_config');
 const schema = require('../db/schema');
 const logger = require('../utils/logger');
+const { routeValidations, handleValidationErrors, commonValidations } = require('../middleware/validation');
+const asyncHandler = require('../middleware/asyncHandler');
+const { adminLimiter } = require('../middleware/rateLimiter');
 
 const { users, routines, routineExercises, exercises, userDailyMealPlans, dailyLogs, dailyExercises, mealItems, foods, userGoals } = schema;
 const { eq, and, asc, desc, gte, lte, sql } = require('drizzle-orm');
@@ -19,8 +23,8 @@ function ensureAdmin(req, res, next) {
     next();
 }
 
-// Todas las rutas de este router requieren autenticación + rol administrador
-router.use(authenticateToken, ensureAdmin);
+// Todas las rutas de este router requieren autenticación + rol administrador + rate limiting
+router.use(authenticateToken, ensureAdmin, adminLimiter);
 
 // ---------------------------------------------------------------------------
 // 1) Listado de usuarios para el panel de administración
@@ -583,31 +587,27 @@ router.get('/users/:userId/routines', async (req, res) => {
 // POST /api/admin/users
 // body: { email, password, role (opcional: 'CLIENT', 'COACH', 'ADMIN') }
 // ---------------------------------------------------------------------------
-router.post('/users', async (req, res) => {
-    const { email, password, role } = req.body;
+router.post('/users', 
+    [
+        commonValidations.email,
+        body('password')
+            .isLength({ min: 6, max: 128 })
+            .withMessage('La contraseña debe tener entre 6 y 128 caracteres'),
+        body('role')
+            .optional()
+            .isIn(['CLIENT', 'COACH', 'ADMIN'])
+            .withMessage('role debe ser uno de: CLIENT, COACH, ADMIN'),
+    ],
+    handleValidationErrors,
+    asyncHandler(async (req, res) => {
+        const { email, password, role } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email y contraseña son obligatorios.' });
-    }
+        // Validar rol si se proporciona
+        const validRoles = ['CLIENT', 'COACH', 'ADMIN'];
+        const userRole = role && validRoles.includes(role.toUpperCase()) 
+            ? role.toUpperCase() 
+            : 'CLIENT'; // Por defecto CLIENT
 
-    // Validación básica de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: 'El formato del email no es válido.' });
-    }
-
-    // Validación básica de contraseña
-    if (password.length < 6) {
-        return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
-    }
-
-    // Validar rol si se proporciona
-    const validRoles = ['CLIENT', 'COACH', 'ADMIN'];
-    const userRole = role && validRoles.includes(role.toUpperCase()) 
-        ? role.toUpperCase() 
-        : 'CLIENT'; // Por defecto CLIENT
-
-    try {
         // Verificar si el usuario ya existe
         const existingUsers = await db.select().from(users).where(eq(users.email, email));
         if (existingUsers.length > 0) {
@@ -640,11 +640,8 @@ router.post('/users', async (req, res) => {
             message: `Usuario creado exitosamente como ${userRole}.`,
             user: newUser[0],
         });
-    } catch (error) {
-        logger.error('Error al crear usuario (admin):', { error: error.message, stack: error.stack });
-        return res.status(500).json({ error: 'Error interno del servidor al crear usuario.' });
-    }
-});
+    })
+);
 
 // ---------------------------------------------------------------------------
 // 8) Actualizar un usuario (admin)

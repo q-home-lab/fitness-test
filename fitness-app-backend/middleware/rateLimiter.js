@@ -52,10 +52,46 @@ const createLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter para rutas de administración (muy restrictivo)
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 50, // 50 requests por ventana de tiempo
+  message: {
+    error: 'Demasiadas solicitudes de administración. Por favor, intenta de nuevo más tarde.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter para rutas de coach (moderado)
+const coachLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // 100 requests por ventana de tiempo
+  message: {
+    error: 'Demasiadas solicitudes. Por favor, intenta de nuevo más tarde.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter para mensajes (prevenir spam)
+const messagesLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 10, // 10 mensajes por minuto
+  message: {
+    error: 'Demasiados mensajes. Por favor, espera un momento antes de enviar otro.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   authLimiter,
   generalLimiter,
   passwordResetLimiter,
   createLimiter,
+  adminLimiter,
+  coachLimiter,
+  messagesLimiter,
 };
 

@@ -1,4 +1,5 @@
-// Sistema de caché simple para API calls
+// Sistema de caché mejorado para API calls
+// Implementa stale-while-revalidate pattern
 // Usa localStorage para persistencia y Map para caché en memoria
 
 class ApiCache {
@@ -6,6 +7,7 @@ class ApiCache {
     this.memoryCache = new Map();
     this.maxMemorySize = 50; // Máximo de items en memoria
     this.defaultTTL = 5 * 60 * 1000; // 5 minutos por defecto
+    this.staleTTL = 10 * 60 * 1000; // 10 minutos para considerar stale (stale-while-revalidate)
   }
 
   /**
@@ -40,16 +42,34 @@ class ApiCache {
           // Mover a memoria para acceso más rápido
           this.setMemory(key, item.data, item.expires);
           return item.data;
+        } else if (this.isStale(item)) {
+          // Si está stale pero no expirado, devolverlo de todos modos (stale-while-revalidate)
+          return item.data;
         } else {
-          // Eliminar si expiró
+          // Eliminar si expiró completamente
           localStorage.removeItem(`cache_${key}`);
         }
       }
     } catch (error) {
-      console.warn('Error al leer del caché:', error);
+      // Usar logger si está disponible, sino console.warn
+      if (typeof window !== 'undefined' && window.logger) {
+        window.logger.warn('Error al leer del caché:', error);
+      }
     }
 
     return null;
+  }
+
+  /**
+   * Verifica si un item está stale (pasado el TTL pero dentro del staleTTL)
+   * @param {object} item - Item del caché
+   * @returns {boolean} - True si está stale
+   */
+  isStale(item) {
+    if (!item || !item.expires) return false;
+    const now = Date.now();
+    const staleThreshold = item.expires + (this.staleTTL - this.defaultTTL);
+    return now > item.expires && now < staleThreshold;
   }
 
   /**

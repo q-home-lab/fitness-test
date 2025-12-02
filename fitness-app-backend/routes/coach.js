@@ -7,8 +7,11 @@ const authenticateToken = require('./authMiddleware');
 const { db } = require('../db/db_config');
 const schema = require('../db/schema');
 const logger = require('../utils/logger');
+const { routeValidations, handleValidationErrors, commonValidations } = require('../middleware/validation');
+const asyncHandler = require('../middleware/asyncHandler');
+const { coachLimiter } = require('../middleware/rateLimiter');
 
-const { users, inviteTokens, dailyLogs, userGoals, dailyExercises, mealItems } = schema;
+const { users, inviteTokens, dailyLogs, userGoals, dailyExercises, mealItems, clientRoutineAssignments, checkIns, routineTemplates } = schema;
 const { eq, and, gt, desc, sql, gte, lte, asc } = require('drizzle-orm');
 
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
@@ -62,23 +65,20 @@ function createEmailTransport() {
 
 const mailTransport = createEmailTransport();
 
-// Todas las rutas de este router requieren autenticación + rol COACH o ADMIN
-router.use(authenticateToken, ensureCoach);
+// Todas las rutas de este router requieren autenticación + rol COACH o ADMIN + rate limiting
+router.use(authenticateToken, ensureCoach, coachLimiter);
 
 // ---------------------------------------------------------------------------
 // POST /api/coach/invite
 // Crea un token de invitación y envía un email al cliente
 // ---------------------------------------------------------------------------
-router.post('/invite', async (req, res) => {
-    const { email } = req.body;
-    const coachId = req.user.id;
+router.post('/invite', 
+    [commonValidations.email],
+    handleValidationErrors,
+    asyncHandler(async (req, res) => {
+        const { email } = req.body;
+        const coachId = req.user.id;
 
-    // Validación básica
-    if (!email || !email.includes('@')) {
-        return res.status(400).json({ error: 'Email inválido.' });
-    }
-
-    try {
         // Verificar si el email ya está registrado
         const existingUsers = await db.select().from(users).where(eq(users.email, email)).limit(1);
         if (existingUsers.length > 0) {
@@ -136,12 +136,8 @@ router.post('/invite', async (req, res) => {
             message: 'Invitación creada y enviada exitosamente.',
             inviteLink: inviteLink, // Devolvemos el enlace por si acaso
         });
-
-    } catch (error) {
-        logger.error('Error creando invitación:', { error: error.message, stack: error.stack, coachId, email });
-        return res.status(500).json({ error: 'Error interno del servidor al crear la invitación.' });
-    }
-});
+    })
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/coach/clients
@@ -310,11 +306,33 @@ router.get('/clients/:clientId', async (req, res) => {
             .where(eq(userGoals.user_id, clientId))
             .orderBy(desc(userGoals.created_at));
 
-        // Obtener rutinas asignadas (si existen)
-        // TODO: Esto se implementará en Sprint 3
+        // Obtener rutinas asignadas
+        const routineAssignments = await db
+            .select({
+                assignment_id: clientRoutineAssignments.assignment_id,
+                template_id: clientRoutineAssignments.template_id,
+                assigned_date: clientRoutineAssignments.assigned_date,
+                is_recurring: clientRoutineAssignments.is_recurring,
+                recurring_day: clientRoutineAssignments.recurring_day,
+                created_at: clientRoutineAssignments.created_at,
+                template: {
+                    template_id: routineTemplates.template_id,
+                    name: routineTemplates.name,
+                    description: routineTemplates.description,
+                }
+            })
+            .from(clientRoutineAssignments)
+            .leftJoin(routineTemplates, eq(clientRoutineAssignments.template_id, routineTemplates.template_id))
+            .where(eq(clientRoutineAssignments.client_id, clientId))
+            .orderBy(desc(clientRoutineAssignments.assigned_date));
 
-        // Obtener check-ins (si existen)
-        // TODO: Esto se implementará en Sprint 4
+        // Obtener check-ins
+        const checkInsList = await db
+            .select()
+            .from(checkIns)
+            .where(eq(checkIns.client_id, clientId))
+            .orderBy(desc(checkIns.week_of))
+            .limit(12); // Últimos 12 check-ins (3 meses)
 
         // Obtener últimos logs con ejercicios y comidas
         const recentLogs = await db
@@ -372,6 +390,8 @@ router.get('/clients/:clientId', async (req, res) => {
             },
             weightHistory,
             goals,
+            routineAssignments,
+            checkIns: checkInsList,
             recentLogs: logsWithDetails,
         });
 

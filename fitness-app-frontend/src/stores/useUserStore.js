@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
+import logger from '../utils/logger';
 
 const useUserStore = create(
   persist(
@@ -45,7 +46,7 @@ const useUserStore = create(
             loading: false 
           });
         } catch (error) {
-          console.error('Token inválido/expirado, forzando logout:', error);
+          logger.error('Token inválido/expirado, forzando logout:', error);
           localStorage.removeItem('userToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('userId');
@@ -75,6 +76,9 @@ const useUserStore = create(
           if (navigate) {
             if (!user.role || user.role === null) {
               navigate('/select-role', { replace: true });
+            } else if (user.role === 'COACH' || user.role === 'ADMIN') {
+              // Los coaches y admins van a su dashboard específico
+              navigate('/coach/dashboard', { replace: true });
             } else {
               navigate('/dashboard', { replace: true });
             }
@@ -112,6 +116,9 @@ const useUserStore = create(
           if (navigate) {
             if (!user.role || user.role === null) {
               navigate('/select-role', { replace: true });
+            } else if (user.role === 'COACH' || user.role === 'ADMIN') {
+              // Los coaches y admins van a su dashboard específico
+              navigate('/coach/dashboard', { replace: true });
             } else {
               // Si tiene rol, verificar onboarding
               // El OnboardingGuard se encargará de redirigir según el estado

@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Routines
+ *   description: Gestión de rutinas de entrenamiento
+ */
+
 // /routes/routines.js
 
 const express = require('express');
@@ -7,12 +14,48 @@ const authenticateToken = require('./authMiddleware');
 const { db } = require('../db/db_config'); 
 const schema = require('../db/schema'); 
 const { routines, routineExercises, exercises } = schema; 
-const { eq, and, asc, isNull, sql } = require('drizzle-orm');
-const logger = require('../utils/logger'); 
+const { eq, and, asc, isNull, sql, count } = require('drizzle-orm');
+const logger = require('../utils/logger');
+const asyncHandler = require('../middleware/asyncHandler'); 
 
+/**
+ * @swagger
+ * /api/routines:
+ *   post:
+ *     summary: Crear una nueva rutina
+ *     tags: [Routines]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 100
+ *               description:
+ *                 type: string
+ *                 maxLength: 500
+ *     responses:
+ *       201:
+ *         description: Rutina creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 routine:
+ *                   $ref: '#/components/schemas/Routine'
+ */
 // --- RUTA: POST /api/routines ---
 // 1. Crear una nueva rutina para el usuario logeado
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, asyncHandler(async (req, res) => {
     const user_id = req.user.id;
     const { name, description } = req.body; 
 
@@ -20,74 +63,95 @@ router.post('/', authenticateToken, async (req, res) => {
         return res.status(400).json({ error: 'El nombre de la rutina es obligatorio.' });
     }
 
-    try {
-        const newRoutine = await db.insert(routines).values({
-            user_id: user_id,
-            name: name,
-            description: description || null, 
-        }).returning({
-            routine_id: routines.routine_id,
-            name: routines.name,
-            description: routines.description,
-            is_active: routines.is_active,
-        });
+    const newRoutine = await db.insert(routines).values({
+        user_id: user_id,
+        name: name,
+        description: description || null, 
+    }).returning({
+        routine_id: routines.routine_id,
+        name: routines.name,
+        description: routines.description,
+        is_active: routines.is_active,
+    });
 
-        return res.status(201).json({
-            message: 'Rutina creada con éxito.',
-            routine: newRoutine[0] 
-        });
-
-    } catch (error) {
-        logger.error('Error al crear rutina:', { error: error.message, stack: error.stack, user_id });
-        return res.status(500).json({ error: 'Error interno del servidor al crear rutina.' });
-    }
-});
+    return res.status(201).json({
+        message: 'Rutina creada con éxito.',
+        routine: newRoutine[0] 
+    });
+}));
 
 
+/**
+ * @swagger
+ * /api/routines:
+ *   get:
+ *     summary: Listar todas las rutinas activas del usuario
+ *     tags: [Routines]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Elementos por página
+ *     responses:
+ *       200:
+ *         description: Lista de rutinas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 routines:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Routine'
+ */
 // --- RUTA: GET /api/routines ---
 // 2. Listar todas las rutinas activas del usuario (con paginación)
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
     const user_id = req.user.id;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20)); // Máximo 100 por página
     const offset = (page - 1) * limit;
 
-    try {
-        // Obtener total de rutinas
-        const totalResult = await db.select({
-            count: sql`count(*)`.as('count')
-        })
+    // Obtener total de rutinas usando count()
+    const totalResult = await db.select({ count: count() })
         .from(routines)
         .where(and(eq(routines.user_id, user_id), eq(routines.is_active, true)));
 
-        const total = parseInt(totalResult[0]?.count || 0);
+    const total = totalResult[0]?.count || 0;
 
-        // Obtener rutinas con paginación
-        const userRoutines = await db.select()
-            .from(routines)
-            .where(and(eq(routines.user_id, user_id), eq(routines.is_active, true)))
-            .orderBy(asc(routines.routine_id))
-            .limit(limit)
-            .offset(offset);
+    // Obtener rutinas con paginación
+    const userRoutines = await db.select()
+        .from(routines)
+        .where(and(eq(routines.user_id, user_id), eq(routines.is_active, true)))
+        .orderBy(asc(routines.routine_id))
+        .limit(limit)
+        .offset(offset);
 
-        return res.status(200).json({
-            message: 'Lista de rutinas activas cargada con éxito.',
-            routines: userRoutines,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasNext: page < Math.ceil(total / limit),
-                hasPrev: page > 1
-            }
-        });
-
-    } catch (error) {
-        logger.error('Error al listar rutinas:', { error: error.message, stack: error.stack, user_id });
-        return res.status(500).json({ error: 'Error interno del servidor al listar rutinas.' });
-    }
-});
+    return res.status(200).json({
+        message: 'Lista de rutinas activas cargada con éxito.',
+        routines: userRoutines,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasMore: offset + limit < total,
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1
+        }
+    });
+}));
 
 
 // --- RUTA: GET /api/routines/:routineId ---

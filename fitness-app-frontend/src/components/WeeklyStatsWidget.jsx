@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import api from '../services/api';
+import logger from '../utils/logger';
 
-const WeeklyStatsWidget = () => {
+const WeeklyStatsWidget = React.memo(() => {
     const [weeklyData, setWeeklyData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedWeek, setSelectedWeek] = useState(0); // 0 = esta semana, 1 = semana pasada, etc.
@@ -35,7 +36,7 @@ const WeeklyStatsWidget = () => {
 
             setWeeklyData(weekData);
         } catch (error) {
-            console.error('Error al cargar datos semanales:', error);
+            logger.error('Error al cargar datos semanales:', error);
         } finally {
             setLoading(false);
         }
@@ -52,7 +53,7 @@ const WeeklyStatsWidget = () => {
 
     if (loading) {
         return (
-            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
+            <div className="backdrop-blur-xl bg-white/60 dark:bg-black/60 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 p-6 shadow-sm transition-all duration-500">
                 <div className="flex justify-center py-8">
                     <div className="w-6 h-6 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                 </div>
@@ -61,22 +62,22 @@ const WeeklyStatsWidget = () => {
     }
 
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm transition-colors duration-300">
+        <div className="backdrop-blur-xl bg-white/60 dark:bg-black/60 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 p-6 shadow-sm hover:shadow-lg hover:border-gray-300/50 dark:hover:border-gray-700/50 transition-all duration-500">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-light tracking-tight text-gray-900 dark:text-white">
                     Resumen Semanal
                 </h2>
                 <div className="flex gap-2">
                     <button
                         onClick={() => setSelectedWeek(prev => Math.max(0, prev - 1))}
                         disabled={selectedWeek === 0}
-                        className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-1.5 backdrop-blur-md bg-white/60 dark:bg-black/60 border border-gray-200/50 dark:border-gray-800/50 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-white/80 dark:hover:bg-black/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         ←
                     </button>
                     <button
                         onClick={() => setSelectedWeek(prev => prev + 1)}
-                        className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        className="px-3 py-1.5 backdrop-blur-md bg-white/60 dark:bg-black/60 border border-gray-200/50 dark:border-gray-800/50 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-white/80 dark:hover:bg-black/80 transition-all"
                     >
                         →
                     </button>
@@ -84,7 +85,7 @@ const WeeklyStatsWidget = () => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4">
+                <div className="backdrop-blur-md bg-blue-50/60 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200/50 dark:border-blue-800/50">
                     <div className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">
                         Calorías Consumidas
                     </div>
@@ -96,7 +97,7 @@ const WeeklyStatsWidget = () => {
                     </div>
                 </div>
 
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-4">
+                <div className="backdrop-blur-md bg-green-50/60 dark:bg-green-900/20 rounded-2xl p-4 border border-green-200/50 dark:border-green-800/50">
                     <div className="text-sm text-green-600 dark:text-green-400 font-medium mb-1">
                         Calorías Quemadas
                     </div>
@@ -108,7 +109,7 @@ const WeeklyStatsWidget = () => {
                     </div>
                 </div>
 
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-4">
+                <div className="backdrop-blur-md bg-purple-50/60 dark:bg-purple-900/20 rounded-2xl p-4 border border-purple-200/50 dark:border-purple-800/50">
                     <div className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">
                         Peso Promedio
                     </div>
@@ -120,7 +121,7 @@ const WeeklyStatsWidget = () => {
                     </div>
                 </div>
 
-                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-4">
+                <div className="backdrop-blur-md bg-orange-50/60 dark:bg-orange-900/20 rounded-2xl p-4 border border-orange-200/50 dark:border-orange-800/50">
                     <div className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-1">
                         Días Activos
                     </div>
@@ -173,7 +174,9 @@ const WeeklyStatsWidget = () => {
             </div>
         </div>
     );
-};
+});
+
+WeeklyStatsWidget.displayName = 'WeeklyStatsWidget';
 
 export default WeeklyStatsWidget;
 

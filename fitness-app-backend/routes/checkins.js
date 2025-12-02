@@ -1,24 +1,56 @@
 const express = require('express');
 const router = express.Router();
+const { body } = require('express-validator');
 
 const authenticateToken = require('./authMiddleware');
 const { db } = require('../db/db_config');
 const schema = require('../db/schema');
 const logger = require('../utils/logger');
+const { handleValidationErrors, commonValidations } = require('../middleware/validation');
+const asyncHandler = require('../middleware/asyncHandler');
 
 const { users, checkIns } = schema;
 const { eq, and, desc, asc } = require('drizzle-orm');
 
 // POST /api/checkin - Crear o actualizar check-in semanal
-router.post('/', authenticateToken, async (req, res) => {
-    const userId = req.user.id;
-    const { week_of, weight, feeling, notes, photo_front, photo_side, photo_back } = req.body;
+router.post('/', 
+    authenticateToken,
+    [
+        body('week_of')
+            .notEmpty()
+            .withMessage('week_of es requerido')
+            .matches(/^\d{4}-\d{2}-\d{2}$/)
+            .withMessage('week_of debe estar en formato YYYY-MM-DD'),
+        body('weight')
+            .optional()
+            .isFloat({ min: 20, max: 300 })
+            .withMessage('weight debe ser un número entre 20 y 300 kg'),
+        body('feeling')
+            .optional()
+            .isIn(['excellent', 'good', 'ok', 'bad', 'terrible'])
+            .withMessage('feeling debe ser uno de: excellent, good, ok, bad, terrible'),
+        body('notes')
+            .optional()
+            .isLength({ max: 2000 })
+            .withMessage('notes no puede tener más de 2000 caracteres'),
+        body('photo_front')
+            .optional()
+            .isURL()
+            .withMessage('photo_front debe ser una URL válida'),
+        body('photo_side')
+            .optional()
+            .isURL()
+            .withMessage('photo_side debe ser una URL válida'),
+        body('photo_back')
+            .optional()
+            .isURL()
+            .withMessage('photo_back debe ser una URL válida'),
+    ],
+    handleValidationErrors,
+    asyncHandler(async (req, res) => {
+        const userId = req.user.id;
+        const { week_of, weight, feeling, notes, photo_front, photo_side, photo_back } = req.body;
 
-    if (!week_of) {
-        return res.status(400).json({ error: 'week_of es requerido.' });
-    }
-
-    try {
         // Verificar si ya existe un check-in para esta semana
         const existing = await db
             .select()
@@ -66,11 +98,8 @@ router.post('/', authenticateToken, async (req, res) => {
             message: 'Check-in guardado exitosamente.',
             checkIn: result[0],
         });
-    } catch (error) {
-        logger.error('Error guardando check-in:', { error: error.message, stack: error.stack, userId });
-        return res.status(500).json({ error: 'Error interno del servidor.' });
-    }
-});
+    })
+);
 
 // GET /api/checkin - Obtener check-ins del usuario
 router.get('/', authenticateToken, async (req, res) => {

@@ -1,94 +1,81 @@
-// Utilidades de accesibilidad
+/**
+ * Utilidades de accesibilidad
+ * Funciones helper para mejorar la accesibilidad de la aplicación
+ */
 
 /**
- * Maneja la navegación por teclado en listas y grids
+ * Manejar navegación por teclado en listas
  * @param {KeyboardEvent} event - Evento de teclado
- * @param {string} direction - 'horizontal' | 'vertical' | 'grid'
- * @param {number} currentIndex - Índice actual
- * @param {number} totalItems - Total de items
- * @returns {number | null} - Nuevo índice o null si no hay cambio
+ * @param {string} currentId - ID del elemento actual
+ * @param {string[]} itemIds - Array de IDs de elementos
+ * @param {Function} onSelect - Callback cuando se selecciona un elemento
  */
-export const handleKeyboardNavigation = (event, direction, currentIndex, totalItems) => {
-  let newIndex = currentIndex;
-
+export const handleKeyboardNavigation = (event, currentId, itemIds, onSelect) => {
+  const currentIndex = itemIds.indexOf(currentId);
+  
   switch (event.key) {
-    case 'ArrowUp':
-      if (direction === 'vertical' || direction === 'grid') {
-        event.preventDefault();
-        newIndex = currentIndex > 0 ? currentIndex - 1 : totalItems - 1;
-      }
-      break;
     case 'ArrowDown':
-      if (direction === 'vertical' || direction === 'grid') {
-        event.preventDefault();
-        newIndex = currentIndex < totalItems - 1 ? currentIndex + 1 : 0;
-      }
-      break;
-    case 'ArrowLeft':
-      if (direction === 'horizontal' || direction === 'grid') {
-        event.preventDefault();
-        newIndex = currentIndex > 0 ? currentIndex - 1 : totalItems - 1;
-      }
-      break;
     case 'ArrowRight':
-      if (direction === 'horizontal' || direction === 'grid') {
-        event.preventDefault();
-        newIndex = currentIndex < totalItems - 1 ? currentIndex + 1 : 0;
-      }
+      event.preventDefault();
+      const nextIndex = currentIndex < itemIds.length - 1 ? currentIndex + 1 : 0;
+      onSelect(itemIds[nextIndex]);
+      break;
+    case 'ArrowUp':
+    case 'ArrowLeft':
+      event.preventDefault();
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : itemIds.length - 1;
+      onSelect(itemIds[prevIndex]);
       break;
     case 'Home':
       event.preventDefault();
-      newIndex = 0;
+      onSelect(itemIds[0]);
       break;
     case 'End':
       event.preventDefault();
-      newIndex = totalItems - 1;
+      onSelect(itemIds[itemIds.length - 1]);
+      break;
+    case 'Enter':
+    case ' ':
+      event.preventDefault();
+      onSelect(currentId);
       break;
     default:
-      return null;
+      break;
   }
-
-  return newIndex !== currentIndex ? newIndex : null;
 };
 
 /**
- * Enfoca el primer elemento enfocable dentro de un contenedor
- * @param {HTMLElement} container - Contenedor a buscar
+ * Generar ID único para aria-describedby
  */
-export const focusFirstElement = (container) => {
-  if (!container) return;
-
-  const focusableSelectors = [
-    'a[href]',
-    'button:not([disabled])',
-    'input:not([disabled])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])',
-  ].join(', ');
-
-  const firstFocusable = container.querySelector(focusableSelectors);
-  if (firstFocusable) {
-    firstFocusable.focus();
-  }
+export const generateAriaId = (prefix) => {
+  return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Cierra un modal/dialog y devuelve el foco al elemento que lo abrió
- * @param {HTMLElement} triggerElement - Elemento que abrió el modal
+ * Verificar si el usuario está usando un lector de pantalla
+ * Nota: Esta es una aproximación, no es 100% precisa
  */
-export const closeModalAndRestoreFocus = (triggerElement) => {
-  if (triggerElement && typeof triggerElement.focus === 'function') {
-    setTimeout(() => {
-      triggerElement.focus();
-    }, 100);
-  }
+export const isScreenReaderActive = () => {
+  if (typeof window === 'undefined') return false;
+  
+  // Detectar si hay un lector de pantalla activo
+  // Esto es una aproximación basada en características comunes
+  const hasAriaLive = document.querySelector('[aria-live]');
+  const hasRole = document.querySelector('[role]');
+  
+  // Otra aproximación: verificar si el usuario navega solo con teclado
+  let keyboardOnly = false;
+  document.addEventListener('keydown', () => {
+    keyboardOnly = true;
+  }, { once: true });
+  
+  return hasAriaLive || hasRole || keyboardOnly;
 };
 
 /**
- * Anuncia un mensaje a los screen readers
+ * Anunciar cambios a lectores de pantalla
  * @param {string} message - Mensaje a anunciar
- * @param {string} priority - 'polite' | 'assertive'
+ * @param {string} priority - 'polite' o 'assertive'
  */
 export const announceToScreenReader = (message, priority = 'polite') => {
   const announcement = document.createElement('div');
@@ -97,62 +84,38 @@ export const announceToScreenReader = (message, priority = 'polite') => {
   announcement.setAttribute('aria-atomic', 'true');
   announcement.className = 'sr-only';
   announcement.textContent = message;
-
+  
   document.body.appendChild(announcement);
-
+  
   setTimeout(() => {
     document.body.removeChild(announcement);
   }, 1000);
 };
 
 /**
- * Hook para manejar escape key (requiere importar React)
+ * Manejar focus trap en modales
+ * @param {HTMLElement} container - Contenedor del modal
+ * @param {KeyboardEvent} event - Evento de teclado
  */
-// export const useEscapeKey = (callback) => {
-//   React.useEffect(() => {
-//     const handleEscape = (event) => {
-//       if (event.key === 'Escape') {
-//         callback();
-//       }
-//     };
-
-//     document.addEventListener('keydown', handleEscape);
-//     return () => document.removeEventListener('keydown', handleEscape);
-//   }, [callback]);
-// };
-
-/**
- * Genera IDs únicos para ARIA relationships
- */
-let idCounter = 0;
-export const generateAriaId = (prefix = 'aria') => {
-  return `${prefix}-${++idCounter}-${Date.now()}`;
-};
-
-/**
- * Valida que un elemento tenga las propiedades ARIA necesarias
- */
-export const validateAriaAttributes = (element) => {
-  const warnings = [];
+export const handleFocusTrap = (container, event) => {
+  if (event.key !== 'Tab') return;
   
-  // Si tiene aria-labelledby, verificar que el elemento existe
-  const labelledBy = element.getAttribute('aria-labelledby');
-  if (labelledBy) {
-    const labelElement = document.getElementById(labelledBy);
-    if (!labelElement) {
-      warnings.push(`aria-labelledby="${labelledBy}" apunta a un elemento que no existe`);
+  const focusableElements = container.querySelectorAll(
+    'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
+  
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+  
+  if (event.shiftKey) {
+    if (document.activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+    }
+  } else {
+    if (document.activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
     }
   }
-
-  // Si tiene aria-describedby, verificar que el elemento existe
-  const describedBy = element.getAttribute('aria-describedby');
-  if (describedBy) {
-    const descElement = document.getElementById(describedBy);
-    if (!descElement) {
-      warnings.push(`aria-describedby="${describedBy}" apunta a un elemento que no existe`);
-    }
-  }
-
-  return warnings;
 };
-

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import useBrandStore from '../stores/useBrandStore';
+import logger from '../utils/logger';
 
 const BrandSettings = () => {
   const refreshBrandSettings = useBrandStore((state) => state.refreshBrandSettings);
@@ -42,7 +43,7 @@ const BrandSettings = () => {
         });
       }
     } catch (error) {
-      console.error('Error al cargar configuración de marca:', error);
+      logger.error('Error al cargar configuración de marca:', error);
       setMessage({ type: 'error', text: 'Error al cargar la configuración.' });
     } finally {
       setLoading(false);
@@ -68,7 +69,7 @@ const BrandSettings = () => {
         refreshBrandSettings(); // Actualizar el contexto para que todos los componentes se actualicen
       }, 1000);
     } catch (error) {
-      console.error('Error al guardar configuración:', error);
+      logger.error('Error al guardar configuración:', error);
       setMessage({
         type: 'error',
         text: error.response?.data?.error || 'Error al guardar la configuración.',

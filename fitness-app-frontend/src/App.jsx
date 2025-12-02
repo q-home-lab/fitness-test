@@ -9,16 +9,21 @@ import AuthForm from './AuthForm';
 import { lazy, Suspense } from 'react';
 import OnboardingGuard from './components/OnboardingGuard';
 
-// Componente de carga
+// Importar LoadingState reutilizable
+import LoadingState from './components/LoadingState';
+
+// Componente de carga mejorado
 const LoadingSpinner = () => (
-  <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-black">
-    <div className="w-8 h-8 border-4 border-gray-300 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
-  </div>
+  <LoadingState 
+    message="Cargando..." 
+    variant="spinner" 
+    fullScreen 
+  />
 );
 
 // Lazy loading de páginas
 const LandingPage = lazy(() => import('./pages/LandingPage'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Dashboard = lazy(() => import('./features/dashboard/pages/Dashboard'));
 const WeightTrackingPage = lazy(() => import('./pages/WeightTrackingPage'));
 const DietPage = lazy(() => import('./pages/DietPage'));
 const RoutinesPage = lazy(() => import('./pages/RoutinesPage'));
@@ -41,6 +46,7 @@ const CheckInPage = lazy(() => import('./pages/CheckInPage'));
 // Importación de ErrorBoundary y ToastContainer
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastContainer from './components/ToastContainer';
+import SkipLink from './components/SkipLink';
 
 // --- Componente para Proteger Rutas ---
 const ProtectedRoute = ({ children }) => {
@@ -122,12 +128,10 @@ function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#FAF3E1] dark:bg-black transition-colors duration-300">
-        {/* Skip link para accesibilidad */}
-        <a href="#main-content" className="skip-link">
-          Saltar al contenido principal
-        </a>
+        <SkipLink />
         <ToastContainer />
         <Suspense fallback={<LoadingSpinner />}>
+          <main id="main-content" role="main">
           <Routes>
 
         {/* Ruta Base - Landing Page */}
@@ -319,8 +323,9 @@ function App() {
         />
 
         {/* Redirección para el 404 simple */}
-        <Route path="*" element={<div className="p-8 text-center text-xl">404 | Página no encontrada</div>} />
+        <Route path="*" element={<div className="p-8 text-center text-xl" role="alert">404 | Página no encontrada</div>} />
           </Routes>
+          </main>
         </Suspense>
       </div>
     </ErrorBoundary>

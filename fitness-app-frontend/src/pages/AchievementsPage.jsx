@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../components/Icons';
-import ModernNavbar from '../components/ModernNavbar';
-import BottomNavigation from '../components/BottomNavigation';
+import { AppLayout } from '@/app/layout/AppLayout';
+import { PageContainer } from '@/shared/components/layout/PageContainer';
 import api from '../services/api';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import logger from '@/utils/logger';
 
 const AchievementsPage = () => {
     const [allAchievements, setAllAchievements] = useState([]);
@@ -23,7 +24,7 @@ const AchievementsPage = () => {
             setAllAchievements(response.data.allAchievements || []);
             // setUserAchievements(response.data.userAchievements || []); // Reservado para uso futuro
         } catch (error) {
-            console.error('Error al cargar logros:', error);
+            logger.error('Error al cargar logros:', error);
         } finally {
             setLoading(false);
         }
@@ -59,34 +60,22 @@ const AchievementsPage = () => {
 
     if (loading) {
         return (
-            <>
-                <ModernNavbar />
-                <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-6 py-8">
-                        <div className="flex justify-center py-20">
-                            <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
+            <AppLayout>
+                <PageContainer>
+                    <div className="flex justify-center py-20">
+                        <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                </main>
-                <BottomNavigation />
-            </>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
     return (
-        <>
-            <ModernNavbar />
-            <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-6 py-8">
-                    {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
-                            Logros
-                        </h1>
-                        <p className="text-lg text-gray-600 dark:text-gray-400">
-                            Tus conquistas y metas alcanzadas
-                        </p>
-                    </div>
+        <AppLayout>
+            <PageContainer 
+                title="Logros"
+                description="Tus conquistas y metas alcanzadas"
+            >
 
                     {/* Progreso General */}
                     <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 mb-6 shadow-sm transition-colors duration-300">
@@ -225,10 +214,8 @@ const AchievementsPage = () => {
                             </p>
                         </div>
                     )}
-                </div>
-            </main>
-            <BottomNavigation />
-        </>
+            </PageContainer>
+        </AppLayout>
     );
 };
 

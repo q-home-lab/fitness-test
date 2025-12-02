@@ -1,40 +1,64 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import api from '../services/api'; 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import logger from '../utils/logger';
+
+// Esquema de validación para el formulario de peso
+const weightFormSchema = z.object({
+    weight: z
+        .number({
+            required_error: 'El peso es requerido',
+            invalid_type_error: 'El peso debe ser un número',
+        })
+        .min(20, 'El peso debe ser al menos 20 kg')
+        .max(300, 'El peso no puede exceder 300 kg'),
+});
 
 const WeightForm = ({ currentDate, currentWeight, onLogUpdated }) => {
-    const [weight, setWeight] = useState(currentWeight || '');
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
     const formattedDate = format(currentDate, 'yyyy-MM-dd');
+    
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        reset,
+        setValue,
+    } = useForm({
+        resolver: zodResolver(weightFormSchema),
+        defaultValues: {
+            weight: currentWeight ? parseFloat(currentWeight) : undefined,
+        },
+    });
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage('');
-        setLoading(true);
-
-        const weightValue = parseFloat(weight);
-        if (isNaN(weightValue) || weightValue <= 0) {
-            setMessage({ type: 'error', text: 'Por favor, introduce un peso válido.' });
-            setLoading(false);
-            return;
+    // Actualizar el valor cuando cambie currentWeight
+    useEffect(() => {
+        if (currentWeight) {
+            setValue('weight', parseFloat(currentWeight));
         }
+    }, [currentWeight, setValue]);
 
+    const onSubmit = async (data) => {
         try {
             const response = await api.post('/logs', {
                 date: formattedDate,
-                weight: weightValue.toFixed(2),
+                weight: data.weight.toFixed(2),
             });
 
-            setMessage({ type: 'success', text: response.data.message || 'Peso registrado correctamente' });
-            onLogUpdated(response.data.log); 
-
+            // Mostrar mensaje de éxito (puedes usar toast aquí)
+            if (onLogUpdated) {
+                onLogUpdated(response.data.log);
+            }
+            
+            // Resetear formulario después de éxito
+            reset();
         } catch (error) {
-            console.error('Error al actualizar peso:', error.response?.data);
-            setMessage({ type: 'error', text: error.response?.data?.error || 'Error al actualizar el peso.' });
-        } finally {
-            setLoading(false);
+            logger.error('Error al actualizar peso:', error.response?.data);
+            // El error se mostrará a través del toast o mensaje de error
+            throw error; // Re-lanzar para que react-hook-form maneje el error
         }
     };
 
@@ -52,7 +76,7 @@ const WeightForm = ({ currentDate, currentWeight, onLogUpdated }) => {
                 </div>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" aria-label="Formulario de registro de peso">
                 <div>
                     <label htmlFor="weight-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Peso actual (kg)
@@ -62,37 +86,38 @@ const WeightForm = ({ currentDate, currentWeight, onLogUpdated }) => {
                         type="number"
                         step="0.1"
                         placeholder="Ej: 75.5"
-                        className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 dark:focus:border-blue-400 text-gray-900 dark:text-white transition-colors duration-300"
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        required
+                        aria-describedby={errors.weight ? "weight-error" : currentWeight ? "weight-hint" : undefined}
+                        aria-invalid={errors.weight ? "true" : "false"}
+                        aria-required="true"
+                        className={`w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800 border rounded-2xl text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 dark:focus:border-blue-400 text-gray-900 dark:text-white transition-colors duration-300 ${
+                            errors.weight 
+                                ? 'border-red-300 dark:border-red-700' 
+                                : 'border-gray-300 dark:border-gray-700'
+                        }`}
+                        {...register('weight', { valueAsNumber: true })}
                     />
-                    {currentWeight && (
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 ml-1">
+                    {errors.weight && (
+                        <p id="weight-error" className="text-xs text-red-600 dark:text-red-400 mt-2 ml-1" role="alert" aria-live="polite">
+                            {errors.weight.message}
+                        </p>
+                    )}
+                    {currentWeight && !errors.weight && (
+                        <p id="weight-hint" className="text-xs text-gray-500 dark:text-gray-500 mt-2 ml-1">
                             Último registro: <span className="font-medium">{currentWeight} kg</span>
                         </p>
                     )}
                 </div>
                 
-                {message.text && (
-                    <div className={`rounded-2xl p-4 ${
-                        message.type === 'success' 
-                            ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800' 
-                            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
-                    }`}>
-                        <p className="text-sm font-medium">{message.text}</p>
-                    </div>
-                )}
-                
                 <button 
                     type="submit" 
-                    className="w-full py-3.5 bg-blue-600 dark:bg-blue-500 text-white rounded-2xl font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    disabled={loading}
+                    aria-label={isSubmitting ? "Guardando peso" : currentWeight ? "Actualizar peso registrado" : "Registrar nuevo peso"}
+                    className="w-full py-3.5 bg-blue-600 dark:bg-blue-500 text-white rounded-2xl font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    disabled={isSubmitting}
                 >
-                    {loading ? (
+                    {isSubmitting ? (
                         <>
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            Guardando...
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></div>
+                            <span aria-live="polite">Guardando...</span>
                         </>
                     ) : currentWeight ? (
                         'Actualizar Peso'

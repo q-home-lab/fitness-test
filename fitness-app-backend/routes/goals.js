@@ -1,4 +1,11 @@
 /**
+ * @swagger
+ * tags:
+ *   name: Goals
+ *   description: Gestión de objetivos de fitness del usuario
+ */
+
+/**
  * Rutas para gestionar objetivos del usuario
  * GET /api/goals - Obtener objetivo activo del usuario
  * POST /api/goals - Crear o actualizar objetivo
@@ -14,6 +21,8 @@ const { userGoals, dailyLogs, users } = schema;
 const { eq, and, desc } = require('drizzle-orm');
 const logger = require('../utils/logger');
 const { calculateBMR, calculateTDEE, calculateRecommendedCalories } = require('../utils/healthCalculations');
+const asyncHandler = require('../middleware/asyncHandler');
+const { routeValidations, handleValidationErrors } = require('../middleware/validation');
 
 /**
  * Calcular calorías diarias recomendadas basado en objetivo de peso
@@ -192,92 +201,142 @@ function calculateDailyCalorieGoal(currentWeight, targetWeight, weeklyWeightChan
  * GET /api/goals
  * Obtener el objetivo activo del usuario
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, asyncHandler(async (req, res) => {
     const user_id = req.user.id;
     
-    try {
-        const goals = await db.select()
-            .from(userGoals)
-            .where(and(
-                eq(userGoals.user_id, user_id),
-                eq(userGoals.is_active, true)
-            ))
-            .orderBy(desc(userGoals.created_at))
-            .limit(1);
-        
-        if (goals.length === 0) {
-            return res.status(200).json({ goal: null, message: 'No hay objetivo activo.' });
-        }
-        
-        const goal = goals[0];
-        
-        // Calcular recomendaciones para el objetivo existente
-        try {
-            const userData = await db.select({
-                height: users.height,
-                age: users.age,
-                gender: users.gender
-            })
-            .from(users)
-            .where(eq(users.user_id, user_id))
-            .limit(1);
-            
-            const user = userData[0] || {};
-            
-            const calorieCalculation = calculateDailyCalorieGoal(
-                parseFloat(goal.current_weight),
-                parseFloat(goal.target_weight),
-                parseFloat(goal.weekly_weight_change_goal),
-                goal.goal_type,
-                {
-                    height: user.height ? parseFloat(user.height) : null,
-                    age: user.age ? parseInt(user.age) : null,
-                    gender: user.gender || null,
-                    activityLevel: 'moderate' // Por defecto, se puede mejorar obteniendo de perfil
-                }
-            );
-            
-            return res.status(200).json({ 
-                goal: goal, 
-                message: 'Objetivo obtenido con éxito.',
-                recommendations: {
-                    bmr: calorieCalculation.bmr,
-                    tdee: calorieCalculation.tdee,
-                    dailyActivity: calorieCalculation.dailyActivity,
-                    caloriesToBurn: calorieCalculation.caloriesToBurn,
-                    deficit: calorieCalculation.deficit,
-                    exerciseCaloriesNeeded: calorieCalculation.exerciseCaloriesNeeded,
-                    explanation: calorieCalculation.explanation
-                }
-            });
-        } catch (calcError) {
-            // Si hay error al calcular, devolver solo el objetivo
-            logger.error('Error al calcular recomendaciones:', { error: calcError.message });
-            return res.status(200).json({ goal: goal, message: 'Objetivo obtenido con éxito.' });
-        }
-        
-    } catch (error) {
-        logger.error('Error al obtener objetivo:', { error: error.message, stack: error.stack, user_id });
-        return res.status(500).json({ error: 'Error interno del servidor.' });
+    const goals = await db.select()
+        .from(userGoals)
+        .where(and(
+            eq(userGoals.user_id, user_id),
+            eq(userGoals.is_active, true)
+        ))
+        .orderBy(desc(userGoals.created_at))
+        .limit(1);
+    
+    if (goals.length === 0) {
+        return res.status(200).json({ goal: null, message: 'No hay objetivo activo.' });
     }
-});
+    
+    const goal = goals[0];
+    
+    // Calcular recomendaciones para el objetivo existente
+    try {
+        const userData = await db.select({
+            height: users.height,
+            age: users.age,
+            gender: users.gender
+        })
+        .from(users)
+        .where(eq(users.user_id, user_id))
+        .limit(1);
+        
+        const user = userData[0] || {};
+        
+        const calorieCalculation = calculateDailyCalorieGoal(
+            parseFloat(goal.current_weight),
+            parseFloat(goal.target_weight),
+            parseFloat(goal.weekly_weight_change_goal),
+            goal.goal_type,
+            {
+                height: user.height ? parseFloat(user.height) : null,
+                age: user.age ? parseInt(user.age) : null,
+                gender: user.gender || null,
+                activityLevel: 'moderate' // Por defecto, se puede mejorar obteniendo de perfil
+            }
+        );
+        
+        return res.status(200).json({ 
+            goal: goal, 
+            message: 'Objetivo obtenido con éxito.',
+            recommendations: {
+                bmr: calorieCalculation.bmr,
+                tdee: calorieCalculation.tdee,
+                dailyActivity: calorieCalculation.dailyActivity,
+                caloriesToBurn: calorieCalculation.caloriesToBurn,
+                deficit: calorieCalculation.deficit,
+                exerciseCaloriesNeeded: calorieCalculation.exerciseCaloriesNeeded,
+                explanation: calorieCalculation.explanation
+            }
+        });
+    } catch (calcError) {
+        // Si hay error al calcular, devolver solo el objetivo
+        logger.error('Error al calcular recomendaciones:', { error: calcError.message });
+        return res.status(200).json({ goal: goal, message: 'Objetivo obtenido con éxito.' });
+    }
+}));
 
+/**
+ * @swagger
+ * /api/goals:
+ *   post:
+ *     summary: Crear o actualizar objetivo del usuario
+ *     tags: [Goals]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - target_weight
+ *               - current_weight
+ *             properties:
+ *               target_weight:
+ *                 type: number
+ *                 minimum: 20
+ *                 maximum: 300
+ *                 description: Peso objetivo en kg
+ *               current_weight:
+ *                 type: number
+ *                 minimum: 20
+ *                 maximum: 300
+ *                 description: Peso actual en kg
+ *               weekly_weight_change_goal:
+ *                 type: number
+ *                 default: -0.5
+ *                 description: Cambio de peso semanal objetivo en kg
+ *               goal_type:
+ *                 type: string
+ *                 enum: [weight_loss, weight_gain, maintain]
+ *                 default: weight_loss
+ *               activity_level:
+ *                 type: string
+ *                 enum: [sedentary, light, moderate, active, very_active]
+ *                 default: moderate
+ *     responses:
+ *       201:
+ *         description: Objetivo creado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 goal:
+ *                   $ref: '#/components/schemas/Goal'
+ *                 recommendations:
+ *                   type: object
+ */
 /**
  * POST /api/goals
  * Crear o actualizar objetivo del usuario
  */
-router.post('/', authenticateToken, async (req, res) => {
-    const user_id = req.user.id;
-    const { target_weight, current_weight, weekly_weight_change_goal, goal_type, activity_level } = req.body;
-    
-    if (!target_weight || !current_weight) {
-        return res.status(400).json({ error: 'Faltan campos requeridos: target_weight y current_weight.' });
-    }
-    
-    const goalType = goal_type || 'weight_loss';
-    const weeklyChange = weekly_weight_change_goal || (goalType === 'weight_loss' ? -0.5 : 0.5);
-    
-    try {
+router.post('/', 
+    authenticateToken,
+    routeValidations.createGoal || ((req, res, next) => next()),
+    handleValidationErrors,
+    asyncHandler(async (req, res) => {
+        const user_id = req.user.id;
+        const { target_weight, current_weight, weekly_weight_change_goal, goal_type, activity_level } = req.body;
+        
+        if (!target_weight || !current_weight) {
+            return res.status(400).json({ error: 'Faltan campos requeridos: target_weight y current_weight.' });
+        }
+        
+        const goalType = goal_type || 'weight_loss';
+        const weeklyChange = weekly_weight_change_goal || (goalType === 'weight_loss' ? -0.5 : 0.5);
+        
         // Obtener datos del usuario para cálculos precisos
         const userData = await db.select({
             height: users.height,
@@ -338,18 +397,14 @@ router.post('/', authenticateToken, async (req, res) => {
                 explanation: calorieCalculation.explanation
             }
         });
-        
-    } catch (error) {
-        logger.error('Error al crear objetivo:', { error: error.message, stack: error.stack, user_id });
-        return res.status(500).json({ error: 'Error interno del servidor.' });
-    }
-});
+    })
+);
 
 /**
  * GET /api/goals/calculate-calories
  * Calcular calorías recomendadas sin crear objetivo
  */
-router.get('/calculate-calories', authenticateToken, async (req, res) => {
+router.get('/calculate-calories', authenticateToken, asyncHandler(async (req, res) => {
     const user_id = req.user.id;
     const { current_weight, target_weight, weekly_weight_change_goal, goal_type, activity_level } = req.query;
     
@@ -360,51 +415,45 @@ router.get('/calculate-calories', authenticateToken, async (req, res) => {
     const goalType = goal_type || 'weight_loss';
     const weeklyChange = weekly_weight_change_goal || (goalType === 'weight_loss' ? -0.5 : 0.5);
     
-    try {
-        // Obtener datos del usuario para cálculos precisos
-        const userData = await db.select({
-            height: users.height,
-            age: users.age,
-            gender: users.gender
-        })
-        .from(users)
-        .where(eq(users.user_id, user_id))
-        .limit(1);
-        
-        const user = userData[0] || {};
-        
-        // Calcular calorías con datos del usuario
-        const calorieCalculation = calculateDailyCalorieGoal(
-            parseFloat(current_weight),
-            parseFloat(target_weight),
-            parseFloat(weeklyChange),
-            goalType,
-            {
-                height: user.height ? parseFloat(user.height) : null,
-                age: user.age ? parseInt(user.age) : null,
-                gender: user.gender || null,
-                activityLevel: activity_level || 'moderate'
-            }
-        );
-        
-        return res.status(200).json({
-            daily_calorie_goal: calorieCalculation.dailyCalorieGoal,
-            weekly_weight_change_goal: parseFloat(weeklyChange),
-            goal_type: goalType,
-            bmr: calorieCalculation.bmr,
-            tdee: calorieCalculation.tdee,
-            dailyActivity: calorieCalculation.dailyActivity,
-            caloriesToBurn: calorieCalculation.caloriesToBurn,
-            deficit: calorieCalculation.deficit,
-            exerciseCaloriesNeeded: calorieCalculation.exerciseCaloriesNeeded,
-            explanation: calorieCalculation.explanation
-        });
-        
-    } catch (error) {
-        logger.error('Error al calcular calorías:', { error: error.message, stack: error.stack });
-        return res.status(500).json({ error: 'Error interno del servidor.' });
-    }
-});
+    // Obtener datos del usuario para cálculos precisos
+    const userData = await db.select({
+        height: users.height,
+        age: users.age,
+        gender: users.gender
+    })
+    .from(users)
+    .where(eq(users.user_id, user_id))
+    .limit(1);
+    
+    const user = userData[0] || {};
+    
+    // Calcular calorías con datos del usuario
+    const calorieCalculation = calculateDailyCalorieGoal(
+        parseFloat(current_weight),
+        parseFloat(target_weight),
+        parseFloat(weeklyChange),
+        goalType,
+        {
+            height: user.height ? parseFloat(user.height) : null,
+            age: user.age ? parseInt(user.age) : null,
+            gender: user.gender || null,
+            activityLevel: activity_level || 'moderate'
+        }
+    );
+    
+    return res.status(200).json({
+        daily_calorie_goal: calorieCalculation.dailyCalorieGoal,
+        weekly_weight_change_goal: parseFloat(weeklyChange),
+        goal_type: goalType,
+        bmr: calorieCalculation.bmr,
+        tdee: calorieCalculation.tdee,
+        dailyActivity: calorieCalculation.dailyActivity,
+        caloriesToBurn: calorieCalculation.caloriesToBurn,
+        deficit: calorieCalculation.deficit,
+        exerciseCaloriesNeeded: calorieCalculation.exerciseCaloriesNeeded,
+        explanation: calorieCalculation.explanation
+    });
+}));
 
 module.exports = router;
 

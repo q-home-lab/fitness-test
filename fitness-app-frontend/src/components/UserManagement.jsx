@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import logger from '../utils/logger';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -18,7 +19,7 @@ const UserManagement = () => {
       const response = await api.get('/admin/users');
       setUsers(response.data.users || []);
     } catch (error) {
-      console.error('Error al cargar usuarios:', error);
+      logger.error('Error al cargar usuarios:', error);
       setMessage({ type: 'error', text: 'Error al cargar usuarios.' });
     } finally {
       setLoading(false);

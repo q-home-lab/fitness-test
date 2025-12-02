@@ -5,6 +5,7 @@ import useToastStore from '../stores/useToastStore';
 import useUserStore from '../stores/useUserStore';
 import api from '../services/api';
 import Icon from '../components/Icons';
+import logger from '../utils/logger';
 
 const WelcomePage = () => {
     const navigate = useNavigate();
@@ -91,7 +92,7 @@ const WelcomePage = () => {
                 navigate('/dashboard', { replace: true });
             }
         } catch (error) {
-            console.error('Error al completar onboarding:', error);
+            logger.error('Error al completar onboarding:', error);
             toast.error(error.response?.data?.error || 'Error al completar la configuración');
         } finally {
             setLoading(false);

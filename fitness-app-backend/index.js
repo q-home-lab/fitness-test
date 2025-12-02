@@ -14,6 +14,8 @@ try {
 
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
+const helmet = require('helmet');
 
 // Importamos librerías de seguridad (aunque se usan principalmente en auth.js)
 const bcrypt = require('bcrypt');
@@ -49,17 +51,67 @@ const brandRoutes = require('./routes/brand'); // <-- Rutas de configuración de
 const notificationsRoutes = require('./routes/notifications'); // <-- Rutas de notificaciones
 const achievementsRoutes = require('./routes/achievements'); // <-- Rutas de logros
 const coachRoutes = require('./routes/coach'); // <-- Rutas de coach
+const clientRoutes = require('./routes/client'); // <-- Rutas de cliente
 const inviteRoutes = require('./routes/invite'); // <-- Rutas de invitaciones (públicas)
 const templatesRoutes = require('./routes/templates'); // <-- Rutas de plantillas
 const checkinsRoutes = require('./routes/checkins'); // <-- Rutas de check-ins
 const messagesRoutes = require('./routes/messages'); // <-- Rutas de mensajes
+const healthRoutes = require('./routes/health'); // <-- Rutas de health check
+
+// Importar middlewares de manejo de errores
+const errorHandler = require('./middleware/errorHandler');
+const requestIdMiddleware = require('./middleware/requestId');
+const responseTimeMiddleware = require('./middleware/responseTime');
+const payloadSize = require('./middleware/payloadSize');
+const sanitize = require('./middleware/sanitize');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 // --- 2. MIDDLEWARE GLOBAL ---
+// Request ID para tracking (debe ir primero)
+app.use(requestIdMiddleware);
+
+// Response time tracking (después de request ID)
+app.use(responseTimeMiddleware);
+
+// Helmet para headers de seguridad
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://api.fontshare.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://api.fontshare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // unsafe-eval necesario para Vite en desarrollo
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", process.env.FRONTEND_URL, process.env.VITE_API_URL].filter(Boolean),
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Necesario para algunas integraciones
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Permitir recursos cross-origin
+}));
+
+// Compresión de respuestas (gzip/brotli) - debe ir antes de otras rutas
+app.use(compression({
+    level: 6, // Nivel de compresión (1-9, 6 es un buen balance)
+    filter: (req, res) => {
+        // No comprimir si el cliente no lo soporta o si es muy pequeño
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        // Usar compresión para todas las respuestas JSON y texto
+        return compression.filter(req, res);
+    }
+}));
+
+// Validar tamaño de payloads (1MB máximo)
+app.use(payloadSize(1024 * 1024)); // 1MB
+
+// Sanitizar inputs
+app.use(sanitize);
+
 // Permite que Express lea JSON en el cuerpo de las peticiones
-app.use(express.json());
+app.use(express.json({ limit: '1mb' })); // Limitar tamaño de JSON también
 // Habilita CORS para permitir que el frontend de React se conecte
 // En desarrollo permite todos los orígenes, en producción permite orígenes específicos
 const corsOptions = {
@@ -105,17 +157,35 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 
+// Importar rate limiters
+const { generalLimiter } = require('./middleware/rateLimiter');
+
 // --- 3. RUTAS PÚBLICAS Y DE AUTENTICACIÓN ---
-// Ruta de prueba
-app.get('/', (req, res) => {
+// Ruta de prueba (con rate limiting)
+app.get('/', generalLimiter, (req, res) => {
     res.send('Servidor de Fitness App corriendo con Express y Drizzle!');
 });
 
-// Rutas de Registro y Login
+// Swagger/OpenAPI Documentation
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+    const swaggerUi = require('swagger-ui-express');
+    const swaggerSpec = require('./config/swagger');
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'Fitness App API Documentation',
+    }));
+    logger.info('Swagger UI disponible en /api-docs');
+}
+
+// Health check (debe ir antes de otras rutas para monitoreo rápido)
+// Health check sin rate limiting para monitoreo
+app.use('/api/health', healthRoutes);
+
+// Rutas de Registro y Login (ya tienen rate limiting en authRoutes)
 app.use('/api/auth', authRoutes);
 
-// Rutas de Invitaciones (públicas)
-app.use('/api/invite', inviteRoutes);
+// Rutas de Invitaciones (públicas) - aplicar rate limiting
+app.use('/api/invite', generalLimiter, inviteRoutes);
 
 // --- 4. RUTAS PROTEGIDAS CON DATOS ---
 // Todas estas rutas usarán el middleware authenticateToken (implementado en sus archivos de router)
@@ -133,6 +203,7 @@ app.use('/api/brand', brandRoutes); // <-- RUTAS DE CONFIGURACIÓN DE MARCA
 app.use('/api/notifications', notificationsRoutes); // <-- RUTAS DE NOTIFICACIONES
 app.use('/api/achievements', achievementsRoutes); // <-- RUTAS DE LOGROS
 app.use('/api/coach', coachRoutes); // <-- RUTAS DE COACH
+app.use('/api/client', clientRoutes); // <-- RUTAS DE CLIENTE
 app.use('/api/templates', templatesRoutes); // <-- RUTAS DE PLANTILLAS
 app.use('/api/checkin', checkinsRoutes); // <-- RUTAS DE CHECK-INS
 app.use('/api/messages', messagesRoutes); // <-- RUTAS DE MENSAJES
@@ -271,8 +342,21 @@ app.get('/api/profile/streak', authenticateToken, async (req, res) => {
     }
 });
 
+// --- 6. MANEJO DE ERRORES Y RUTAS NO ENCONTRADAS ---
+// Manejar rutas no encontradas (debe ir antes del error handler)
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Ruta no encontrada',
+        path: req.path,
+        method: req.method,
+    });
+});
 
-// --- 6. INICIO DEL SERVIDOR ---
+// Error handler debe ser el último middleware
+// Captura todos los errores no manejados
+app.use(errorHandler);
+
+// --- 7. INICIO DEL SERVIDOR ---
 // Solo inicia el servidor si no estamos en modo test
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {

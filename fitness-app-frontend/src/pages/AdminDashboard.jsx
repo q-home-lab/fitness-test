@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import ModernNavbar from '../components/ModernNavbar';
-import BottomNavigation from '../components/BottomNavigation';
+import { AppLayout } from '@/app/layout/AppLayout';
+import { PageContainer } from '@/shared/components/layout/PageContainer';
 import BrandSettings from '../components/BrandSettings';
 import UserManagement from '../components/UserManagement';
 import UserTracking from '../components/UserTracking';
@@ -9,6 +9,7 @@ import api from '../services/api';
 import useUserStore from '../stores/useUserStore';
 import Icon from '../components/Icons';
 import useToastStore from '../stores/useToastStore';
+import logger from '@/utils/logger';
 
 const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -64,7 +65,7 @@ const AdminDashboard = () => {
         const response = await api.get('/admin/users');
         setUsers(response.data.users || []);
       } catch (error) {
-        console.error('Error al cargar usuarios de administración:', error);
+        logger.error('Error al cargar usuarios de administración:', error);
       } finally {
         setLoadingUsers(false);
       }
@@ -86,7 +87,7 @@ const AdminDashboard = () => {
       setRoutines(routinesRes.data.routines || []);
       setMealPlans(mealsRes.data.plans || []);
     } catch (error) {
-      console.error('Error al cargar detalle de usuario (admin):', error);
+      logger.error('Error al cargar detalle de usuario (admin):', error);
     }
   };
 
@@ -100,7 +101,7 @@ const AdminDashboard = () => {
       setRoutines((prev) => [...prev, response.data.routine]);
       setNewRoutine({ name: '', description: '' });
     } catch (error) {
-      console.error('Error al crear rutina para usuario (admin):', error);
+      logger.error('Error al crear rutina para usuario (admin):', error);
     } finally {
       setSaving(false);
     }
@@ -132,7 +133,7 @@ const AdminDashboard = () => {
         snacks: '',
       }));
     } catch (error) {
-      console.error('Error al guardar plan de comidas (admin):', error);
+      logger.error('Error al guardar plan de comidas (admin):', error);
       alert(error.response?.data?.error || 'Error al guardar el plan de comidas');
     } finally {
       setSaving(false);
@@ -161,7 +162,7 @@ const AdminDashboard = () => {
       const routinesRes = await api.get(`/admin/users/${selectedUserId}/routines`);
       setRoutines(routinesRes.data.routines || []);
     } catch (error) {
-      console.error('Error al generar rutina automática:', error);
+      logger.error('Error al generar rutina automática:', error);
       alert(error.response?.data?.error || 'Error al generar la rutina automática');
     } finally {
       setGeneratingRoutine(false);
@@ -192,7 +193,7 @@ const AdminDashboard = () => {
       const mealsRes = await api.get(`/admin/users/${selectedUserId}/meal-plans`);
       setMealPlans(mealsRes.data.plans || []);
     } catch (error) {
-      console.error('Error al generar plan de comidas automático:', error);
+      logger.error('Error al generar plan de comidas automático:', error);
       alert(error.response?.data?.error || 'Error al generar el plan de comidas automático');
     } finally {
       setGeneratingMealPlan(false);
@@ -208,7 +209,7 @@ const AdminDashboard = () => {
       setSelectedRoutine(response.data.routine);
       setRoutineExercises(response.data.routine.exercises || []);
     } catch (error) {
-      console.error('Error al cargar detalles de rutina:', error);
+      logger.error('Error al cargar detalles de rutina:', error);
       alert(error.response?.data?.error || 'Error al cargar los detalles de la rutina');
     } finally {
       setLoadingRoutineDetails(false);
@@ -244,7 +245,7 @@ const AdminDashboard = () => {
       
       toast.success('Rutina actualizada correctamente');
     } catch (error) {
-      console.error('Error al actualizar rutina:', error);
+      logger.error('Error al actualizar rutina:', error);
       alert(error.response?.data?.error || 'Error al actualizar la rutina');
     } finally {
       setSaving(false);
@@ -274,7 +275,7 @@ const AdminDashboard = () => {
       
       toast.success('Rutina eliminada correctamente');
     } catch (error) {
-      console.error('Error al eliminar rutina:', error);
+      logger.error('Error al eliminar rutina:', error);
       alert(error.response?.data?.error || 'Error al eliminar la rutina');
     } finally {
       setSaving(false);
@@ -320,7 +321,7 @@ const AdminDashboard = () => {
       
       toast.success('Ejercicio actualizado correctamente');
     } catch (error) {
-      console.error('Error al actualizar ejercicio:', error);
+      logger.error('Error al actualizar ejercicio:', error);
       alert(error.response?.data?.error || 'Error al actualizar el ejercicio');
     } finally {
       setSaving(false);
@@ -343,7 +344,7 @@ const AdminDashboard = () => {
       
       toast.success('Ejercicio eliminado correctamente');
     } catch (error) {
-      console.error('Error al eliminar ejercicio:', error);
+      logger.error('Error al eliminar ejercicio:', error);
       alert(error.response?.data?.error || 'Error al eliminar el ejercicio');
     } finally {
       setSaving(false);
@@ -403,7 +404,7 @@ const AdminDashboard = () => {
       
       toast.success('Ejercicio añadido a la rutina correctamente');
     } catch (error) {
-      console.error('Error al añadir ejercicio:', error);
+      logger.error('Error al añadir ejercicio:', error);
       alert(error.response?.data?.error || 'Error al añadir el ejercicio a la rutina');
     } finally {
       setSaving(false);
@@ -411,10 +412,8 @@ const AdminDashboard = () => {
   };
 
   return (
-    <>
-      <ModernNavbar />
-      <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+    <AppLayout>
+      <PageContainer>
           <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
@@ -719,65 +718,6 @@ const AdminDashboard = () => {
                       </div>
                     )}
 
-                    {/* Modal de editar rutina */}
-                    {editingRoutine && (
-                      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 max-w-md w-full">
-                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                            Editar Rutina
-                          </h3>
-                          <form onSubmit={handleUpdateRoutine} className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Nombre de la rutina
-                              </label>
-                              <input
-                                type="text"
-                                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 dark:focus:border-blue-400 transition-all"
-                                value={editRoutineForm.name}
-                                onChange={(e) =>
-                                  setEditRoutineForm((prev) => ({ ...prev, name: e.target.value }))
-                                }
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Descripción (opcional)
-                              </label>
-                              <input
-                                type="text"
-                                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 dark:focus:border-blue-400 transition-all"
-                                value={editRoutineForm.description}
-                                onChange={(e) =>
-                                  setEditRoutineForm((prev) => ({ ...prev, description: e.target.value }))
-                                }
-                              />
-                            </div>
-                            <div className="flex gap-3">
-                              <button
-                                type="submit"
-                                disabled={saving}
-                                className="flex-1 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
-                              >
-                                {saving ? 'Guardando...' : 'Guardar'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingRoutine(null);
-                                  setEditRoutineForm({ name: '', description: '' });
-                                }}
-                                className="px-4 py-2 bg-gray-600 dark:bg-gray-500 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          </form>
-                        </div>
-                      </div>
-                    )}
-
                     <form onSubmit={handleCreateRoutine} className="space-y-3 mt-2">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
@@ -1013,9 +953,7 @@ const AdminDashboard = () => {
             </div>
             </div>
           )}
-        </div>
-      </main>
-      <BottomNavigation />
+      </PageContainer>
 
       {/* Modal para añadir ejercicio a rutina */}
       {showAddExerciseModal && selectedRoutine && (
@@ -1084,7 +1022,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Modal para editar ejercicio de rutina */}
+      {/* Modal de Edición de Ejercicio */}
       {editingExercise && selectedRoutine && (
         <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4 overflow-y-auto">
           <div className="bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl p-6 max-w-2xl w-full md:my-8 max-h-[90vh] md:max-h-[90vh] overflow-y-auto">
@@ -1269,7 +1207,61 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
-    </>
+
+      {/* Modal de editar rutina */}
+      {editingRoutine && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Editar Rutina
+            </h3>
+            <form onSubmit={handleUpdateRoutine} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 dark:focus:border-blue-400 transition-all"
+                  value={editRoutineForm.name}
+                  onChange={(e) => setEditRoutineForm({ ...editRoutineForm, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 dark:focus:border-blue-400 transition-all h-24 resize-none"
+                  value={editRoutineForm.description}
+                  onChange={(e) => setEditRoutineForm({ ...editRoutineForm, description: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRoutine(null);
+                    setEditRoutineForm({ name: '', description: '' });
+                  }}
+                  className="px-4 py-2 bg-gray-600 dark:bg-gray-500 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </AppLayout>
   );
 };
 

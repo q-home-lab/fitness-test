@@ -1,6 +1,7 @@
-// Service Worker para PWA
-const CACHE_NAME = 'fitness-app-v1';
-const RUNTIME_CACHE = 'fitness-runtime-v1';
+// Service Worker para PWA mejorado
+const CACHE_NAME = 'fitness-app-v2';
+const RUNTIME_CACHE = 'fitness-runtime-v2';
+const API_CACHE = 'fitness-api-v2';
 
 // Archivos estáticos para cachear (solo los que existen)
 const STATIC_ASSETS = [
@@ -14,20 +15,21 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Cacheando archivos estáticos');
         // Intentar cachear archivos, pero no fallar si algunos no existen
         return Promise.allSettled(
           STATIC_ASSETS.map(url => 
-            cache.add(url).catch(err => {
-              console.warn(`[SW] No se pudo cachear ${url}:`, err);
+            cache.add(url).catch(() => {
+              // Silenciar errores de archivos que no existen
               return null;
             })
           )
         );
       })
-      .then(() => self.skipWaiting())
-      .catch((error) => {
-        console.error('[SW] Error durante instalación:', error);
+      .then(() => {
+        // Activar inmediatamente el nuevo service worker
+        return self.skipWaiting();
+      })
+      .catch(() => {
         // Continuar aunque haya errores
         self.skipWaiting();
       })
@@ -41,29 +43,55 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames
           .filter((cacheName) => {
-            return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE;
+            // Eliminar caches antiguos
+            return cacheName !== CACHE_NAME && 
+                   cacheName !== RUNTIME_CACHE && 
+                   cacheName !== API_CACHE;
           })
           .map((cacheName) => {
-            console.log('[SW] Eliminando cache antiguo:', cacheName);
             return caches.delete(cacheName);
           })
       );
     })
-    .then(() => self.clients.claim())
+    .then(() => {
+      // Tomar control de todas las páginas
+      return self.clients.claim();
+    })
   );
 });
 
-// Estrategia de cache: Network First con fallback a cache
+// Estrategia de cache mejorada: Stale-While-Revalidate para APIs
 self.addEventListener('fetch', (event) => {
   // Ignorar requests que no son GET
   if (event.request.method !== 'GET') {
     return;
   }
 
-  // Ignorar requests a APIs externas (solo cachear nuestra app)
+  // Para APIs, usar stale-while-revalidate
   if (event.request.url.includes('/api/')) {
-    // Para APIs, usar network only (no cachear)
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      caches.open(API_CACHE).then((cache) => {
+        return cache.match(event.request).then((cachedResponse) => {
+          // Fetch en background para actualizar cache
+          const fetchPromise = fetch(event.request).then((networkResponse) => {
+            // Solo cachear respuestas exitosas
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {
+            // Si falla la red, devolver cached si existe
+            return cachedResponse || new Response(
+              JSON.stringify({ error: 'Sin conexión' }), 
+              { status: 503, headers: { 'Content-Type': 'application/json' } }
+            );
+          });
+
+          // Devolver cached inmediatamente si existe, sino esperar network
+          return cachedResponse || fetchPromise;
+        });
+      })
+    );
     return;
   }
 

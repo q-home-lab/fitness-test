@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ModernNavbar from '../components/ModernNavbar';
-import BottomNavigation from '../components/BottomNavigation';
+import { AppLayout } from '@/app/layout/AppLayout';
+import { PageContainer } from '@/shared/components/layout/PageContainer';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as Dialog from '@radix-ui/react-dialog';
 import api from '../services/api';
+import logger from '@/utils/logger';
 
 const CalendarPage = () => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -30,7 +31,7 @@ const CalendarPage = () => {
             await api.get(`/calendar/schedule/check-completion/${today}`);
             
         } catch (error) {
-            console.error('Error al cargar rutinas planificadas:', error);
+            logger.error('Error al cargar rutinas planificadas:', error);
         } finally {
             setLoading(false);
         }
@@ -42,7 +43,7 @@ const CalendarPage = () => {
             const response = await api.get('/routines');
             setRoutines(response.data.routines || []);
         } catch (error) {
-            console.error('Error al cargar rutinas:', error);
+            logger.error('Error al cargar rutinas:', error);
         }
     }, []);
 
@@ -75,7 +76,7 @@ const CalendarPage = () => {
             setSelectedRoutine('');
             fetchScheduledRoutines();
         } catch (error) {
-            console.error('Error al programar rutina:', error);
+            logger.error('Error al programar rutina:', error);
             alert(error.response?.data?.error || 'Error al programar la rutina');
         }
     };
@@ -92,7 +93,7 @@ const CalendarPage = () => {
             const today = format(new Date(), 'yyyy-MM-dd');
             await api.get(`/calendar/schedule/check-completion/${today}`);
         } catch (error) {
-            console.error('Error al actualizar estado:', error);
+            logger.error('Error al actualizar estado:', error);
             alert('Error al actualizar el estado de la rutina');
         }
     };
@@ -107,7 +108,7 @@ const CalendarPage = () => {
             await api.delete(`/calendar/schedule/${scheduledId}`);
             fetchScheduledRoutines();
         } catch (error) {
-            console.error('Error al eliminar rutina planificada:', error);
+            logger.error('Error al eliminar rutina planificada:', error);
             alert('Error al eliminar la rutina planificada');
         }
     };
@@ -148,25 +149,22 @@ const CalendarPage = () => {
 
     if (loading) {
         return (
-            <>
-                <ModernNavbar />
-                <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-6 py-8">
-                        <div className="flex justify-center py-20">
-                            <div className="w-8 h-8 border-2 border-[#D45A0F] dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
+            <AppLayout>
+                <PageContainer>
+                    <div className="flex justify-center py-20">
+                        <div className="w-8 h-8 border-2 border-[#D45A0F] dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                </main>
-                <BottomNavigation />
-            </>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
     return (
-        <>
-            <ModernNavbar />
-            <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-6 py-8">
+        <AppLayout>
+            <PageContainer
+                title="Calendario"
+                description="Planifica tus entrenamientos"
+            >
                     {/* Header */}
                     <div className="mb-8">
                         <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
@@ -333,12 +331,9 @@ const CalendarPage = () => {
                             </div>
                         )}
                     </div>
-                </div>
-            </main>
-            <BottomNavigation />
 
-            {/* Modal para programar rutina - Radix UI */}
-            <Dialog.Root open={showScheduleModal} onOpenChange={setShowScheduleModal}>
+                {/* Modal para programar rutina - Radix UI */}
+                <Dialog.Root open={showScheduleModal} onOpenChange={setShowScheduleModal}>
                 <Dialog.Portal>
                     <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
                     <Dialog.Content className="fixed top-0 md:top-1/2 left-0 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl border border-gray-200 dark:border-gray-800 shadow-2xl p-6 md:p-8 max-w-md w-full md:w-[calc(100%-2rem)] md:mx-4 max-h-[90vh] md:max-h-[90vh] h-[90vh] md:h-auto overflow-y-auto z-50 transition-colors duration-300">
@@ -394,7 +389,8 @@ const CalendarPage = () => {
                     </Dialog.Content>
                 </Dialog.Portal>
             </Dialog.Root>
-        </>
+            </PageContainer>
+        </AppLayout>
     );
 };
 

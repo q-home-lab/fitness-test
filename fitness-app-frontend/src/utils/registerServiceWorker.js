@@ -6,7 +6,10 @@ export const registerServiceWorker = () => {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('[SW] Service Worker registrado:', registration.scope);
+          // Log solo en desarrollo
+          if (import.meta.env.DEV) {
+            console.log('[SW] Service Worker registrado:', registration.scope);
+          }
 
           // Verificar actualizaciones cada hora
           setInterval(() => {
@@ -20,29 +23,28 @@ export const registerServiceWorker = () => {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // Hay una nueva versión disponible
-                  console.log('[SW] Nueva versión disponible');
-                  // Opcional: mostrar notificación al usuario
-                  if (window.confirm('Hay una nueva versión disponible. ¿Deseas actualizar?')) {
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                    window.location.reload();
-                  }
+                  // Opcional: mostrar notificación al usuario (mejor usar toast)
+                  // Por ahora, actualizar automáticamente en background
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
                 }
               });
             }
           });
         })
         .catch((error) => {
-          // Silenciar error si el service worker no está disponible (no crítico)
-          if (error.message && error.message.includes('404')) {
-            console.warn('[SW] Service Worker no disponible (esto es normal si no está desplegado)');
-          } else {
-            console.error('[SW] Error al registrar Service Worker:', error);
+          // Silenciar errores en producción (no crítico)
+          if (import.meta.env.DEV) {
+            if (error.message && error.message.includes('404')) {
+              console.warn('[SW] Service Worker no disponible');
+            } else {
+              console.error('[SW] Error al registrar Service Worker:', error);
+            }
           }
         });
 
       // Escuchar mensajes del service worker
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('[SW] Nuevo Service Worker activo');
+        // Recargar cuando hay un nuevo service worker
         window.location.reload();
       });
     });
@@ -53,13 +55,7 @@ export const registerServiceWorker = () => {
 export const requestNotificationPermission = async () => {
   if ('Notification' in window && 'serviceWorker' in navigator) {
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      console.log('[SW] Permiso de notificaciones concedido');
-      return true;
-    } else {
-      console.log('[SW] Permiso de notificaciones denegado');
-      return false;
-    }
+    return permission === 'granted';
   }
   return false;
 };

@@ -6,6 +6,7 @@ import useToastStore from '../stores/useToastStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { useRateLimit } from '../hooks/useRateLimit';
 import MuscleGroupSections from './MuscleGroupSections';
+import logger from '../utils/logger';
 
 const ExerciseSearchAndAdd = ({ onLogUpdated, onExerciseSelect, selectedExercise }) => {
     // Estados para búsqueda y selección
@@ -40,7 +41,7 @@ const ExerciseSearchAndAdd = ({ onLogUpdated, onExerciseSelect, selectedExercise
         try {
             setLoading(true);
             const response = await api.get(`/exercises/search?name=${encodeURIComponent(query)}`);
-            const exercises = response.data.exercises || [];
+            const exercises = response.data?.exercises || [];
             
             const queryLower = query.toLowerCase().trim();
             const queryWords = queryLower.split(/\s+/).filter(w => w.length > 0);
@@ -57,7 +58,15 @@ const ExerciseSearchAndAdd = ({ onLogUpdated, onExerciseSelect, selectedExercise
             
             setSearchResults(exercisesWithThumbnails);
         } catch (error) {
-            console.error('Error en la búsqueda:', error.response?.data || error.message);
+            logger.error('Error en la búsqueda de ejercicios:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data
+            });
+            // Si es un error de autenticación, no mostrar resultados vacíos sin más
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                logger.error('Error de autenticación al buscar ejercicios');
+            }
             setSearchResults([]);
         } finally {
             setLoading(false);
@@ -125,7 +134,7 @@ const ExerciseSearchAndAdd = ({ onLogUpdated, onExerciseSelect, selectedExercise
                 setVideoUrl(response.data.video_url || null);
             }
         } catch (error) {
-            console.error('Error al cargar GIF/video:', error);
+            logger.error('Error al cargar GIF/video:', error);
         } finally {
             setLoadingGif(false);
         }
@@ -196,7 +205,7 @@ const ExerciseSearchAndAdd = ({ onLogUpdated, onExerciseSelect, selectedExercise
                 onLogUpdated();
             }
         } catch (error) {
-            console.error('Error al registrar ejercicio:', error);
+            logger.error('Error al registrar ejercicio:', error);
             toast.error(error.response?.data?.error || 'Error al registrar el ejercicio');
         }
     };

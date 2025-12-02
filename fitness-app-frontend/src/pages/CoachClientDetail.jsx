@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import ModernNavbar from '../components/ModernNavbar';
+import { AppLayout } from '@/app/layout/AppLayout';
+import { PageContainer } from '@/shared/components/layout/PageContainer';
 import { ArrowLeft, TrendingUp, Target, Calendar, FileText, MessageSquare } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
+import logger from '@/utils/logger';
 
 const CoachClientDetail = () => {
     const { id } = useParams();
@@ -37,27 +39,25 @@ const CoachClientDetail = () => {
 
     if (loading) {
         return (
-            <>
-                <ModernNavbar />
-                <div className="flex items-center justify-center h-screen pt-24">
-                    <div className="w-8 h-8 border-4 border-gray-300 dark:border-gray-700 border-t-primary-500 rounded-full animate-spin"></div>
-                </div>
-            </>
+            <AppLayout>
+                <PageContainer>
+                    <div className="flex items-center justify-center py-20">
+                        <div className="w-8 h-8 border-4 border-gray-300 dark:border-gray-700 border-t-primary-500 rounded-full animate-spin"></div>
+                    </div>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
     if (error || !client) {
         return (
-            <>
-                <ModernNavbar />
-                <div className="min-h-screen bg-background dark:bg-gray-900 p-6 pt-24">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                            <p className="text-red-600 dark:text-red-300">{error || 'Cliente no encontrado'}</p>
-                        </div>
+            <AppLayout>
+                <PageContainer>
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                        <p className="text-red-600 dark:text-red-300">{error || 'Cliente no encontrado'}</p>
                     </div>
-                </div>
-            </>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
@@ -71,10 +71,8 @@ const CoachClientDetail = () => {
     const activeGoal = goals.find(g => g.is_active) || null;
 
     return (
-        <>
-            <ModernNavbar />
-            <div className="min-h-screen bg-background dark:bg-gray-900 p-6 pt-24">
-                <div className="max-w-7xl mx-auto">
+        <AppLayout>
+            <PageContainer>
                 {/* Header */}
                 <button
                     onClick={() => navigate('/coach/dashboard')}
@@ -180,9 +178,8 @@ const CoachClientDetail = () => {
                         <NotesTab clientId={id} />
                     </Tabs.Content>
                 </Tabs.Root>
-                </div>
-            </div>
-        </>
+            </PageContainer>
+        </AppLayout>
     );
 };
 
@@ -310,7 +307,7 @@ const CheckInsTab = ({ clientId }) => {
             const response = await api.get(`/checkin/client/${clientId}`);
             setCheckIns(response.data.checkIns || []);
         } catch (error) {
-            console.error('Error cargando check-ins:', error);
+            logger.error('Error cargando check-ins:', error);
         } finally {
             setLoading(false);
         }

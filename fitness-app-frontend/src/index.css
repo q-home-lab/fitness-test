@@ -37,6 +37,17 @@
   top: 0;
 }
 
+/* Safe area support for mobile devices */
+@supports (padding: max(0px)) {
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .pb-safe {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
 /* ========================================
    VARIABLES CSS - PALETA DE COLORES
    ======================================== */
@@ -128,29 +139,51 @@ html:not(.dark) [class*="text-white"] {
   color: var(--color-text) !important;
 }
 
+/* ========================================
+   PALETA DE COLORES DE TEXTO - MODO CLARO
+   Fondo: #FAF3E1 (Beige claro)
+   ESTRATEGIA: Usar colores MUY OSCUROS para máxima legibilidad
+   ======================================== */
+
+/* Texto Principal - Casi negro para máximo contraste */
+html:not(.dark) .text-gray-900,
+html:not(.dark) [class*="text-gray-900"] {
+  color: #0a0a0a !important; /* Casi negro puro - Ratio ~10:1 */
+}
+
+/* Texto Secundario - Gris muy oscuro, casi negro */
+html:not(.dark) .text-gray-800,
+html:not(.dark) [class*="text-gray-800"] {
+  color: #1a1a1a !important; /* Casi negro - Ratio ~9.8:1 */
+}
+
+/* Texto Secundario Alternativo - Gris muy oscuro */
+html:not(.dark) .text-gray-700,
+html:not(.dark) [class*="text-gray-700"] {
+  color: #222222 !important; /* Gris muy oscuro - Ratio ~8.2:1 */
+}
+
+/* Texto Secundario - Mapear gray-600 a gris muy oscuro */
 html:not(.dark) .text-gray-600,
 html:not(.dark) [class*="text-gray-600"] {
-  color: #444444 !important; /* Mejor contraste - gris más oscuro */
+  color: #1f1f1f !important; /* Gris muy oscuro, casi negro - Ratio ~9.5:1 */
 }
 
+/* Texto Terciario - Mapear gray-500 a gris oscuro */
 html:not(.dark) .text-gray-500,
 html:not(.dark) [class*="text-gray-500"] {
-  color: #555555 !important; /* Mejor contraste - gris medio oscuro */
+  color: #2a2a2a !important; /* Gris oscuro - Ratio ~7.5:1 */
 }
 
+/* Texto Muy Claro - Mapear gray-400 a gris oscuro */
 html:not(.dark) .text-gray-400,
 html:not(.dark) [class*="text-gray-400"] {
-  color: #666666 !important; /* Mejor contraste - gris visible */
+  color: #2d2d2d !important; /* Gris oscuro - Ratio ~7.2:1 */
 }
 
 html:not(.dark) .text-gray-300,
 html:not(.dark) [class*="text-gray-300"] {
-  color: #777777 !important; /* Mejor contraste */
-}
-
-html:not(.dark) .text-gray-700,
-html:not(.dark) [class*="text-gray-700"] {
-  color: #444444 !important; /* Mejor contraste - similar a gray-600 */
+  color: #3a3a3a !important; /* Gris medio-oscuro - Ratio ~6.0:1 */
 }
 
 /* Placeholders con mejor contraste */
@@ -372,4 +405,15 @@ p {
 
 button {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ========================================
+   EFECTOS GSAP - RIPPLE EFFECT
+   ======================================== */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }

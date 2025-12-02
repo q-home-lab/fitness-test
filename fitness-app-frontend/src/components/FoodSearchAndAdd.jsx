@@ -4,6 +4,7 @@ import VirtualizedList from './VirtualizedList';
 import useToastStore from '../stores/useToastStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { useRateLimit } from '../hooks/useRateLimit';
+import logger from '../utils/logger';
 
 const MealType = {
     DESAYUNO: 'Desayuno',
@@ -31,7 +32,7 @@ const COMMON_FOODS_SUGGESTIONS = [
     { name: 'Lentejas (cocidas)', calories_base: 116, protein_g: 9, carbs_g: 20, fat_g: 0.4 },
 ];
 
-const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
+const FoodSearchAndAdd = React.memo(({ log, onLogUpdated, date }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [selectedFood, setSelectedFood] = useState(null);
@@ -39,7 +40,6 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
     const [mealType, setMealType] = useState(MealType.DESAYUNO);
     const [loading, setLoading] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
-    const [message, setMessage] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
     const dropdownRef = useRef(null);
@@ -70,7 +70,7 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
             
             setSearchResults(filteredFoods);
         } catch (error) {
-            console.error('Error en la búsqueda:', error);
+            logger.error('Error en la búsqueda:', error);
             setSearchResults([]);
         } finally {
             setSearchLoading(false);
@@ -165,7 +165,7 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
                 setSearchQuery(createdFood.name);
             }
         } catch (error) {
-            console.error('Error al buscar/crear alimento:', error);
+            logger.error('Error al buscar/crear alimento:', error);
             // Si falla, usar la sugerencia directamente como fallback
             setSelectedFood({
                 ...food,
@@ -201,11 +201,6 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
         e.preventDefault();
         setLoading(true);
 
-        if (!logId) {
-            toast.error('Por favor, registra tu peso primero.');
-            setLoading(false);
-            return;
-        }
         if (!selectedFood) {
             toast.error('Por favor, selecciona un alimento.');
             setLoading(false);
@@ -213,6 +208,33 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
         }
 
         try {
+            // Si no hay log, crear uno automáticamente
+            let currentLogId = logId;
+            if (!currentLogId && date) {
+                try {
+                    // Crear el log con peso 0 (se puede actualizar después)
+                    const createLogResponse = await api.post('/logs', {
+                        date: date,
+                        weight: 0
+                    });
+                    currentLogId = createLogResponse.data.log.log_id;
+                    // Recargar el log completo con mealItems vacíos para mantener consistencia
+                    // Esto se actualizará después cuando añadamos la comida
+                } catch (error) {
+                    logger.error('Error al crear log:', error);
+                    const errorMessage = error.response?.data?.error || 'Error al crear el registro del día. Por favor, intenta nuevamente.';
+                    toast.error(errorMessage);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            if (!currentLogId) {
+                toast.error('No se pudo crear el registro del día. Por favor, intenta nuevamente.');
+                setLoading(false);
+                return;
+            }
+
             const consumed_calories = calculateCalories().toFixed(2);
             
             // Asegurar que tenemos un food_id válido
@@ -237,18 +259,15 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
                         foodId = createResponse.data?.food?.food_id;
                     }
                 } catch (error) {
-                    console.error('Error al obtener/crear food_id:', error);
-                    setMessage({ 
-                        type: 'error', 
-                        text: 'Error al registrar el alimento. Por favor, intenta nuevamente.' 
-                    });
+                    logger.error('Error al obtener/crear food_id:', error);
+                    toast.error('Error al registrar el alimento. Por favor, intenta nuevamente.');
                     setLoading(false);
                     return;
                 }
             }
             
             const response = await api.post('/meal-items', {
-                log_id: logId,
+                log_id: currentLogId,
                 food_id: foodId,
                 quantity_grams: parseFloat(quantity).toFixed(2),
                 meal_type: mealType,
@@ -265,26 +284,20 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
             setSearchResults([]);
 
         } catch (error) {
-            console.error('Error al registrar comida:', error.response?.data);
+            logger.error('Error al registrar comida:', error.response?.data);
             toast.error(error.response?.data?.error || 'Error al registrar la comida. Por favor, intenta nuevamente.');
         } finally {
             setLoading(false);
         }
     };
     
-    if (!logId) {
-        return (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-3xl p-6 text-yellow-600 dark:text-yellow-400">
-                <p className="font-medium">Registra tu peso del día para empezar a añadir comidas.</p>
-            </div>
-        );
-    }
+    // Ya no bloqueamos si no hay log, permitimos crear uno automáticamente
 
     const macros = calculateMacros();
 
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-8 shadow-sm transition-colors duration-300">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Añadir Comida</h2>
+        <div className="backdrop-blur-xl bg-white/60 dark:bg-black/60 rounded-3xl border border-gray-200/50 dark:border-gray-800/50 p-8 shadow-sm hover:shadow-lg hover:border-gray-300/50 dark:hover:border-gray-700/50 transition-all duration-500">
+            <h2 className="text-2xl font-light tracking-tight text-gray-900 dark:text-white mb-6">Añadir Comida</h2>
             
             {/* Búsqueda */}
             <div className="mb-6" ref={searchRef}>
@@ -334,8 +347,8 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
 
                 {/* Sugerencias comunes */}
                 {showSuggestions && !selectedFood && searchQuery.length < 2 && (
-                    <div ref={dropdownRef} className="mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl overflow-hidden transition-colors duration-300">
-                        <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+                    <div ref={dropdownRef} className="mt-2 backdrop-blur-xl bg-white/80 dark:bg-black/80 border border-gray-200/50 dark:border-gray-800/50 rounded-2xl shadow-xl overflow-hidden transition-all duration-300">
+                        <div className="px-4 py-2 backdrop-blur-sm bg-gray-100/60 dark:bg-gray-800/60 border-b border-gray-200/50 dark:border-gray-800/50">
                             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Alimentos comunes</span>
                         </div>
                         <VirtualizedList
@@ -347,7 +360,7 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
                                     key={index}
                                     type="button"
                                     onClick={() => handleSelectFood(suggestion)}
-                                    className="w-full px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-800 last:border-b-0"
+                                    className="w-full px-4 py-3.5 text-left hover:backdrop-blur-md hover:bg-white/60 dark:hover:bg-black/60 transition-all duration-200 border-b border-gray-200/50 dark:border-gray-800/50 last:border-b-0"
                                 >
                                     <div className="font-medium text-gray-900 dark:text-white">{suggestion.name}</div>
                                     <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -364,7 +377,7 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
 
                 {/* Resultados de búsqueda */}
                 {searchResults.length > 0 && searchQuery.length >= 2 && !selectedFood && (
-                    <div ref={dropdownRef} className="mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl overflow-hidden transition-colors duration-300">
+                    <div ref={dropdownRef} className="mt-2 backdrop-blur-xl bg-white/80 dark:bg-black/80 border border-gray-200/50 dark:border-gray-800/50 rounded-2xl shadow-xl overflow-hidden transition-all duration-300">
                         <VirtualizedList
                             items={searchResults}
                             itemHeight={70}
@@ -374,7 +387,7 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
                                     key={food.food_id}
                                     type="button"
                                     onClick={() => handleSelectFood(food)}
-                                    className="w-full px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-800 last:border-b-0"
+                                    className="w-full px-4 py-3.5 text-left hover:backdrop-blur-md hover:bg-white/60 dark:hover:bg-black/60 transition-all duration-200 border-b border-gray-200/50 dark:border-gray-800/50 last:border-b-0"
                                 >
                                     <div className="font-medium text-gray-900 dark:text-white">{food.name}</div>
                                     <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -401,7 +414,7 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
             {selectedFood && (
                 <form onSubmit={handleLogMeal} className="space-y-5">
                     {/* Información del alimento seleccionado */}
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 transition-colors duration-300">
+                    <div className="backdrop-blur-md bg-gray-100/60 dark:bg-gray-800/60 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300">
                         <div className="font-semibold text-lg text-gray-900 dark:text-white mb-1">{selectedFood.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             {selectedFood.calories_base} kcal por 100g
@@ -448,7 +461,7 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
                     </div>
 
                     {/* Calorías y macronutrientes calculados */}
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-5 transition-colors duration-300">
+                    <div className="backdrop-blur-md bg-blue-50/60 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/50 rounded-2xl p-5 transition-all duration-300">
                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">Valores calculados</div>
                         <div className="space-y-2">
                             <div className="flex items-baseline justify-between">
@@ -497,6 +510,8 @@ const FoodSearchAndAdd = ({ log, onLogUpdated }) => {
             )}
         </div>
     );
-};
+});
+
+FoodSearchAndAdd.displayName = 'FoodSearchAndAdd';
 
 export default FoodSearchAndAdd;

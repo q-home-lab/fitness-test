@@ -9,6 +9,7 @@ import FirstStepsGuide from '../components/FirstStepsGuide';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { format } from 'date-fns';
 import api from '../services/api';
+import logger from '../utils/logger';
 
 // Lazy load de componentes pesados
 const WeightLineChart = lazy(() => import('../components/WeightLineChart'));
@@ -36,7 +37,7 @@ const Dashboard = () => {
             setLog(response.data.log); 
             setMealItems(response.data.mealItems || []);
         } catch (err) {
-            console.error('Error al cargar log diario:', err);
+            logger.error('Error al cargar log diario:', err);
         }
     }, [formattedDate]);
 
@@ -49,7 +50,7 @@ const Dashboard = () => {
                 setGoal(null);
             }
         } catch (error) {
-            console.error('Error al cargar objetivo:', error);
+            logger.error('Error al cargar objetivo:', error);
             setGoal(null);
         }
     }, []);

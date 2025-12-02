@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import ModernNavbar from '../components/ModernNavbar';
-import { Plus, Dumbbell, Utensils, Trash2, Edit2 } from 'lucide-react';
+import { AppLayout } from '@/app/layout/AppLayout';
+import { PageContainer } from '@/shared/components/layout/PageContainer';
+import { Plus, Dumbbell, Utensils, Trash2, Edit2, AlertCircle } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
+import useToastStore from '../stores/useToastStore';
+import logger from '@/utils/logger';
 
 const TemplatesPage = () => {
     const [activeTab, setActiveTab] = useState('routines');
     const [routineTemplates, setRoutineTemplates] = useState([]);
     const [dietTemplates, setDietTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState(null);
+    const toast = useToastStore();
 
     useEffect(() => {
         loadTemplates();
@@ -19,6 +24,7 @@ const TemplatesPage = () => {
     const loadTemplates = async () => {
         try {
             setLoading(true);
+            setError(null);
             if (activeTab === 'routines') {
                 const response = await api.get('/templates/routines');
                 setRoutineTemplates(response.data.templates || []);
@@ -27,7 +33,19 @@ const TemplatesPage = () => {
                 setDietTemplates(response.data.templates || []);
             }
         } catch (error) {
-            console.error('Error cargando plantillas:', error);
+            logger.error('Error cargando plantillas:', error);
+            const errorMessage = error.response?.data?.error || 
+                error.response?.status === 500 
+                    ? 'Error del servidor al cargar las plantillas. Por favor, intenta más tarde.'
+                    : 'Error al cargar las plantillas. Por favor, verifica tu conexión.';
+            setError(errorMessage);
+            toast.error(errorMessage);
+            // Establecer arrays vacíos para evitar errores de renderizado
+            if (activeTab === 'routines') {
+                setRoutineTemplates([]);
+            } else {
+                setDietTemplates([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -38,19 +56,20 @@ const TemplatesPage = () => {
 
         try {
             await api.delete(`/templates/${type}/${id}`);
+            toast.success('Plantilla eliminada correctamente');
             loadTemplates();
         } catch (error) {
-            console.error('Error eliminando plantilla:', error);
+            logger.error('Error eliminando plantilla:', error);
+            const errorMessage = error.response?.data?.error || 'Error al eliminar la plantilla. Por favor, intenta nuevamente.';
+            toast.error(errorMessage);
         }
     };
 
     const templates = activeTab === 'routines' ? routineTemplates : dietTemplates;
 
     return (
-        <>
-            <ModernNavbar />
-            <div className="min-h-screen bg-background dark:bg-gray-900 p-6 pt-24">
-                <div className="max-w-7xl mx-auto">
+        <AppLayout>
+            <PageContainer>
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
@@ -102,14 +121,50 @@ const TemplatesPage = () => {
                     </button>
                 </div>
 
+                {/* Error Message */}
+                {error && (
+                    <div className="mb-6 backdrop-blur-xl bg-red-50/60 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 rounded-3xl p-6 shadow-sm">
+                        <div className="flex items-start gap-4">
+                            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-red-900 dark:text-red-300 mb-1">
+                                    Error al cargar plantillas
+                                </h3>
+                                <p className="text-sm text-red-700 dark:text-red-400 mb-4">
+                                    {error}
+                                </p>
+                                <button
+                                    onClick={loadTemplates}
+                                    className="px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors shadow-sm hover:shadow-md active:scale-95"
+                                >
+                                    Reintentar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Templates Grid */}
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="w-8 h-8 border-4 border-gray-300 dark:border-gray-700 border-t-primary-500 rounded-full animate-spin"></div>
                     </div>
+                ) : error ? (
+                    <div className="backdrop-blur-xl bg-white/60 dark:bg-black/60 rounded-3xl p-12 text-center border border-gray-200/50 dark:border-gray-800/50 shadow-sm">
+                        <AlertCircle className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            No se pudieron cargar las plantillas. Por favor, intenta nuevamente.
+                        </p>
+                        <button
+                            onClick={loadTemplates}
+                            className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md active:scale-95"
+                        >
+                            Reintentar
+                        </button>
+                    </div>
                 ) : templates.length === 0 ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
-                        <p className="text-gray-500 dark:text-gray-400">
+                    <div className="backdrop-blur-xl bg-white/60 dark:bg-black/60 rounded-3xl p-12 text-center border border-gray-200/50 dark:border-gray-800/50 shadow-sm">
+                        <p className="text-gray-600 dark:text-gray-400">
                             No hay plantillas. Crea tu primera plantilla.
                         </p>
                     </div>
@@ -166,9 +221,8 @@ const TemplatesPage = () => {
                     type={activeTab}
                     onSuccess={loadTemplates}
                 />
-                </div>
-            </div>
-        </>
+            </PageContainer>
+        </AppLayout>
     );
 };
 
@@ -208,9 +262,11 @@ const TemplateModal = ({ open, onOpenChange, template, type, onSuccess }) => {
 
             onSuccess();
             onOpenChange(false);
+            useToastStore.getState().success(template ? 'Plantilla actualizada correctamente' : 'Plantilla creada correctamente');
         } catch (error) {
-            console.error('Error guardando plantilla:', error);
-            alert('Error al guardar la plantilla');
+            logger.error('Error guardando plantilla:', error);
+            const errorMessage = error.response?.data?.error || 'Error al guardar la plantilla. Por favor, intenta nuevamente.';
+            useToastStore.getState().error(errorMessage);
         }
     };
 

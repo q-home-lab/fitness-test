@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import api from '../services/api';
 import { exportWeightHistory } from '../utils/exportData';
+import logger from '../utils/logger';
 
 const WeightLineChart = ({ macros = null }) => {
     const [weightData, setWeightData] = useState([]);
@@ -76,7 +77,7 @@ const WeightLineChart = ({ macros = null }) => {
             
             setWeightData(formattedData);
         } catch (error) {
-            console.error('Error al cargar histórico de peso:', error);
+            logger.error('Error al cargar histórico de peso:', error);
             setWeightData([]);
         } finally {
             setLoading(false);

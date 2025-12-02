@@ -3,8 +3,9 @@ import api from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Icon from './Icons';
+import logger from '../utils/logger';
 
-const NotificationsBell = () => {
+const NotificationsBell = React.memo(() => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +42,14 @@ const NotificationsBell = () => {
             setNotifications(response.data.notifications || []);
             setUnreadCount(response.data.unreadCount || 0);
         } catch (error) {
-            console.error('Error al cargar notificaciones:', error);
+            // Silenciar errores 403/401 ya que son parte del flujo normal de autenticación
+            // El interceptor de axios ya maneja estos casos
+            if (error.response?.status !== 403 && error.response?.status !== 401) {
+                logger.error('Error al cargar notificaciones:', error);
+            }
+            // Establecer valores por defecto en caso de error
+            setNotifications([]);
+            setUnreadCount(0);
         } finally {
             setLoading(false);
         }
@@ -55,7 +63,10 @@ const NotificationsBell = () => {
             );
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {
-            console.error('Error al marcar notificación como leída:', error);
+            // Silenciar errores 403/401
+            if (error.response?.status !== 403 && error.response?.status !== 401) {
+                logger.error('Error al marcar notificación como leída:', error);
+            }
         }
     };
 
@@ -65,7 +76,10 @@ const NotificationsBell = () => {
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             setUnreadCount(0);
         } catch (error) {
-            console.error('Error al marcar todas como leídas:', error);
+            // Silenciar errores 403/401
+            if (error.response?.status !== 403 && error.response?.status !== 401) {
+                logger.error('Error al marcar todas como leídas:', error);
+            }
         }
     };
 
@@ -79,7 +93,10 @@ const NotificationsBell = () => {
                 setUnreadCount(prev => Math.max(0, prev - 1));
             }
         } catch (error) {
-            console.error('Error al eliminar notificación:', error);
+            // Silenciar errores 403/401
+            if (error.response?.status !== 403 && error.response?.status !== 401) {
+                logger.error('Error al eliminar notificación:', error);
+            }
         }
     };
 
@@ -215,7 +232,9 @@ const NotificationsBell = () => {
             )}
         </div>
     );
-};
+});
+
+NotificationsBell.displayName = 'NotificationsBell';
 
 export default NotificationsBell;
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Flame } from 'lucide-react';
+import logger from '../utils/logger';
 
 const StreakBadge = () => {
     const [streak, setStreak] = useState(0);
@@ -15,7 +16,7 @@ const StreakBadge = () => {
             const response = await api.get('/profile/streak');
             setStreak(response.data.streak || 0);
         } catch (error) {
-            console.error('Error cargando streak:', error);
+            logger.error('Error cargando streak:', error);
         } finally {
             setLoading(false);
         }

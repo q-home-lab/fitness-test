@@ -6,6 +6,7 @@ const { mealItems, dailyLogs, foods } = require('../db/schema');
 const { eq, asc } = require('drizzle-orm');
 const logger = require('../utils/logger');
 const { createLimiter } = require('../middleware/rateLimiter');
+const asyncHandler = require('../middleware/asyncHandler');
 
 // Middleware de autenticación global para esta ruta
 router.use(authenticateToken);
@@ -15,7 +16,7 @@ router.use(authenticateToken);
 // REGISTRAR un alimento consumido (Meal Item)
 // Usa transacciones para garantizar consistencia
 // =================================================================
-router.post('/', createLimiter, async (req, res) => {
+router.post('/', createLimiter, asyncHandler(async (req, res) => {
     const user_id = req.user.id;
     const { log_id, food_id, quantity_grams, meal_type, consumed_calories } = req.body;
 
@@ -31,9 +32,8 @@ router.post('/', createLimiter, async (req, res) => {
          return res.status(400).json({ error: 'Cantidad y/o calorías deben ser números positivos.' });
     }
 
-    try {
-        // Usar transacción para garantizar consistencia
-        const result = await db.transaction(async (tx) => {
+    // Usar transacción para garantizar consistencia
+    const result = await db.transaction(async (tx) => {
             // Paso 1: Verificar que el log existe y pertenece al usuario
             const currentLog = await tx.select()
                 .from(dailyLogs)
@@ -101,28 +101,12 @@ router.post('/', createLimiter, async (req, res) => {
             };
         });
 
-        logger.info(`Meal item registrado exitosamente: user_id=${user_id}, log_id=${log_id}, food_id=${food_id}`);
+    logger.info(`Meal item registrado exitosamente: user_id=${user_id}, log_id=${log_id}, food_id=${food_id}`);
 
-        return res.status(201).json({
-            message: 'Comida registrada y calorías actualizadas con éxito.',
-            ...result
-        });
-
-    } catch (error) {
-        logger.error('Error al registrar ítem de comida:', { 
-            error: error.message, 
-            stack: error.stack,
-            user_id,
-            log_id,
-            food_id
-        });
-        
-        if (error.message.includes('no encontrado')) {
-            return res.status(404).json({ error: error.message });
-        }
-        
-        return res.status(500).json({ error: 'Error interno del servidor al registrar la comida.' });
-    }
-});
+    return res.status(201).json({
+        message: 'Comida registrada y calorías actualizadas con éxito.',
+        ...result
+    });
+}));
 
 module.exports = router;

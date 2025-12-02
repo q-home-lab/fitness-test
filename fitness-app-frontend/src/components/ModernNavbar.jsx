@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import useUserStore from '../stores/useUserStore';
 import useBrandStore from '../stores/useBrandStore';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -7,8 +7,9 @@ import NotificationsBell from './NotificationsBell';
 import InviteClientModal from './InviteClientModal';
 import StreakBadge from './StreakBadge';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { getNavigationItems, isActiveRoute } from '@/app/config/navigation.config.jsx';
 
-const ModernNavbar = () => {
+const ModernNavbar = React.memo(() => {
     const navigate = useNavigate();
     const user = useUserStore((state) => state.user);
     const logout = useUserStore((state) => state.logout);
@@ -27,15 +28,8 @@ const ModernNavbar = () => {
 
     // Debug: Log para verificar que el navbar se renderiza
     useEffect(() => {
-        if (process.env.NODE_ENV === 'development') {
-            console.log('[ModernNavbar] Renderizado:', {
-                user: user?.email,
-                role: user?.role,
-                isCoach,
-                isAdmin,
-                location: location.pathname
-            });
-        }
+        // Logging removido - usar logger si es necesario para debugging
+        // En desarrollo, el logger ya maneja los niveles apropiados
     }, [user, isCoach, isAdmin, location.pathname]);
 
     // Cerrar el menú móvil cuando cambia la ruta
@@ -43,135 +37,24 @@ const ModernNavbar = () => {
         setMobileMenuOpen(false);
     }, [location.pathname]);
 
+    // Obtener items de navegación desde la configuración centralizada
+    const navItems = useMemo(() => {
+        // Usar el rol del usuario directamente (viene en mayúsculas: 'COACH', 'ADMIN', 'CLIENT')
+        const role = user?.role || 'CLIENT';
+        return getNavigationItems(role, false);
+    }, [user?.role, isCoach, isAdmin]);
+
     const isActive = (path) => {
-        if (path === '/dashboard') {
-            return location.pathname === '/dashboard' || location.pathname === '/';
-        }
-        return location.pathname.startsWith(path);
+        return isActiveRoute(location.pathname, path);
     };
 
-    const navItems = [
-        {
-            path: '/dashboard',
-            label: 'Inicio',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-            )
-        },
-        {
-            path: '/weight',
-            label: 'Peso',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-            )
-        },
-        {
-            path: '/diet',
-            label: 'Dieta',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-            )
-        },
-        {
-            path: '/routines',
-            label: 'Rutinas',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-            )
-        },
-        {
-            path: '/calendar',
-            label: 'Calendario',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-            )
-        },
-        {
-            path: '/achievements',
-            label: 'Logros',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-            )
-        },
-        ...(isCoach
-            ? [
-                  {
-                      path: '/coach/dashboard',
-                      label: 'Dashboard',
-                      icon: (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                      )
-                  },
-                  {
-                      path: '/coach/templates',
-                      label: 'Plantillas',
-                      icon: (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                      )
-                  },
-              ]
-            : []),
-        ...(isAdmin
-            ? [
-                  {
-                      path: '/admin',
-                      label: 'Admin',
-                      icon: (
-                          <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 flex items-center justify-center">
-                              <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
-                              >
-                                  <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z"
-                                  />
-                                  <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M4 20c0-2.761 3.134-5 7-5s7 2.239 7 5"
-                                  />
-                                  <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M5 7l1.5-1.5M19 7L17.5 5.5"
-                                  />
-                              </svg>
-                          </div>
-                      ),
-                  },
-              ]
-            : []),
-    ];
-
     return (
-        <nav className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 border-b border-gray-200/50 dark:border-gray-800/50 transition-colors duration-300 shadow-sm">
+        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/95 dark:bg-gray-900/95 border-b border-gray-200/50 dark:border-gray-800/50 transition-colors duration-300 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="flex items-center justify-between h-16 lg:h-20 gap-3 md:gap-4">
                     {/* Logo */}
                     <Link 
-                        to="/dashboard" 
+                        to={isCoach || isAdmin ? "/coach/dashboard" : "/dashboard"} 
                         className="flex items-center gap-2 md:gap-3 group flex-shrink-0 min-w-0"
                         onClick={() => setMobileMenuOpen(false)}
                     >
@@ -206,25 +89,36 @@ const ModernNavbar = () => {
                     {user && (
                         <div className="hidden lg:flex items-center flex-1 justify-center min-w-0 px-4">
                             <nav className="flex items-center gap-0.5 justify-center flex-nowrap" aria-label="Navegación principal">
-                                {navItems.map((item) => (
-                                    <Link
-                                        key={item.path}
-                                        to={item.path}
-                                        className={`group relative w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
-                                            isActive(item.path)
-                                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
-                                        }`}
-                                        title={item.label}
-                                    >
-                                        <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{item.icon}</span>
-                                        {/* Tooltip on hover */}
-                                        <span className="absolute -bottom-11 left-1/2 transform -translate-x-1/2 px-2.5 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-[60] shadow-lg">
-                                            {item.label}
-                                            <span className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></span>
-                                        </span>
-                                    </Link>
-                                ))}
+                                {navItems.map((item) => {
+                                    const isCoachDashboard = item.path === '/coach/dashboard';
+                                    return (
+                                        <Link
+                                            key={item.path}
+                                            to={item.path}
+                                            aria-label={item.label}
+                                            aria-current={isActive(item.path) ? 'page' : undefined}
+                                            className={`group relative w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                                isActive(item.path)
+                                                    ? isCoachDashboard
+                                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm'
+                                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                                                    : isCoachDashboard
+                                                        ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100/50 dark:hover:bg-blue-900/20'
+                                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+                                            }`}
+                                            title={item.label}
+                                        >
+                                            <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center" aria-hidden="true">
+                                                {item.icon && <item.icon className="h-5 w-5" />}
+                                            </span>
+                                            {/* Tooltip on hover */}
+                                            <span className="absolute -bottom-11 left-1/2 transform -translate-x-1/2 px-2.5 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-[60] shadow-lg" role="tooltip">
+                                                {item.label}
+                                                <span className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45" aria-hidden="true"></span>
+                                            </span>
+                                        </Link>
+                                    );
+                                })}
                             </nav>
                         </div>
                     )}
@@ -328,7 +222,7 @@ const ModernNavbar = () => {
                                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
                                     }`}
                                 >
-                                    {item.icon}
+                                    {item.icon && <item.icon className="h-5 w-5" />}
                                     {item.label}
                                 </Link>
                             ))}
@@ -385,6 +279,8 @@ const ModernNavbar = () => {
             <InviteClientModal open={inviteModalOpen} onOpenChange={setInviteModalOpen} />
         </nav>
     );
-};
+});
+
+ModernNavbar.displayName = 'ModernNavbar';
 
 export default ModernNavbar;

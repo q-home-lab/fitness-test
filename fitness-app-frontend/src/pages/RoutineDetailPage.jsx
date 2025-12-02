@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import ModernNavbar from '../components/ModernNavbar';
-import BottomNavigation from '../components/BottomNavigation';
+import { AppLayout } from '@/app/layout/AppLayout';
+import { PageContainer } from '@/shared/components/layout/PageContainer';
 import ModernExerciseCard from '../components/ModernExerciseCard';
 import RoutineExerciseForm from '../components/RoutineExerciseForm';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -46,7 +46,7 @@ const RoutineDetailPage = () => {
                 description: response.data.routine.description || ''
             });
         } catch (err) {
-            console.error('Error fetching routine details:', err);
+            logger.error('Error fetching routine details:', err);
             setError('Error al cargar los detalles de la rutina.');
         } finally {
             setLoading(false);
@@ -88,7 +88,7 @@ const RoutineDetailPage = () => {
             setIsEditing(false);
             fetchRoutineDetails();
         } catch (err) {
-            console.error('Error updating routine:', err);
+            logger.error('Error updating routine:', err);
             alert('Error al actualizar la rutina');
         }
     };
@@ -119,7 +119,7 @@ const RoutineDetailPage = () => {
             });
             fetchRoutineDetails();
         } catch (err) {
-            console.error('Error adding exercise:', err);
+            logger.error('Error adding exercise:', err);
             alert(err.response?.data?.error || 'Error al añadir ejercicio a la rutina');
         }
     };
@@ -133,7 +133,7 @@ const RoutineDetailPage = () => {
             await api.delete(`/routines/${id}/exercises/${routineExerciseId}`);
             fetchRoutineDetails();
         } catch (err) {
-            console.error('Error removing exercise:', err);
+            logger.error('Error removing exercise:', err);
             alert('Error al eliminar ejercicio de la rutina');
         }
     };
@@ -164,7 +164,7 @@ const RoutineDetailPage = () => {
                 setExerciseGifUrl('https://via.placeholder.com/300x200/4a5568/ffffff?text=Exercise+Demonstration');
             }
         } catch (err) {
-            console.error('Error loading exercise GIF/video:', err);
+            logger.error('Error loading exercise GIF/video:', err);
             setExerciseGifUrl('https://via.placeholder.com/300x200/4a5568/ffffff?text=Exercise+Demonstration');
         } finally {
             setLoadingExerciseGif(false);
@@ -227,34 +227,26 @@ const RoutineDetailPage = () => {
 
     if (loading) {
         return (
-            <>
-                <ModernNavbar />
-                <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-6 py-8">
-                        <div className="flex justify-center py-20">
-                            <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
+            <AppLayout>
+                <PageContainer>
+                    <div className="flex justify-center py-20">
+                        <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                </main>
-                <BottomNavigation />
-            </>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
     if (error || !routine) {
         return (
-            <>
-                <ModernNavbar />
-                <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-6 py-8">
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-3xl p-6 text-red-600 dark:text-red-400 mb-6">{error || 'Rutina no encontrada'}</div>
-                        <Link to="/routines" className="px-6 py-3.5 bg-blue-600 dark:bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 active:scale-[0.98] transition-all inline-block">
-                            Volver a Rutinas
-                        </Link>
-                    </div>
-                </main>
-                <BottomNavigation />
-            </>
+            <AppLayout>
+                <PageContainer>
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-3xl p-6 text-red-600 dark:text-red-400 mb-6">{error || 'Rutina no encontrada'}</div>
+                    <Link to="/routines" className="px-6 py-3.5 bg-blue-600 dark:bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 active:scale-[0.98] transition-all inline-block">
+                        Volver a Rutinas
+                    </Link>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
@@ -266,10 +258,8 @@ const RoutineDetailPage = () => {
     const totalExercises = routine.exercises.length;
 
     return (
-        <>
-            <ModernNavbar />
-            <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-6 py-8">
+        <AppLayout>
+            <PageContainer>
                     {/* Header */}
                     <div className="mb-8">
                         <Link 
@@ -494,12 +484,9 @@ const RoutineDetailPage = () => {
                             )}
                         </div>
                     </div>
-                </div>
-            </main>
-            <BottomNavigation />
 
-            {/* Add Exercise Modal - Radix UI */}
-            <Dialog.Root open={showAddExerciseModal} onOpenChange={setShowAddExerciseModal}>
+                {/* Add Exercise Modal - Radix UI */}
+                <Dialog.Root open={showAddExerciseModal} onOpenChange={setShowAddExerciseModal}>
                 <Dialog.Portal>
                     <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
                     <Dialog.Content className="fixed top-0 md:top-1/2 left-0 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl border border-gray-200 dark:border-gray-800 shadow-2xl max-w-4xl max-h-[90vh] md:max-h-[90vh] h-[90vh] md:h-auto overflow-y-auto w-full md:w-[calc(100%-2rem)] md:mx-4 z-50 transition-colors duration-300">
@@ -630,7 +617,8 @@ const RoutineDetailPage = () => {
                     </Dialog.Content>
                 </Dialog.Portal>
             </Dialog.Root>
-        </>
+            </PageContainer>
+        </AppLayout>
     );
 };
 

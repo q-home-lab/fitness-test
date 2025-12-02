@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 
         // Si no hay configuración, devolver valores por defecto
         if (settings.length === 0) {
-            return res.status(200).json({
+            res.status(200).json({
                 brand_name: 'FitnessApp',
                 tagline: 'Transforma tu cuerpo, transforma tu vida',
                 logo_url: null,
@@ -33,10 +33,11 @@ router.get('/', async (req, res) => {
                 tiktok_url: null,
                 website_url: null,
             });
+            return;
         }
 
         const setting = settings[0];
-        return res.status(200).json({
+        res.status(200).json({
             brand_name: setting.brand_name,
             tagline: setting.tagline,
             logo_url: setting.logo_url,
@@ -50,7 +51,9 @@ router.get('/', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error al obtener configuración de marca:', error);
-        return res.status(500).json({ error: 'Error interno del servidor al obtener configuración de marca.' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Error interno del servidor al obtener configuración de marca.' });
+        }
     }
 });
 

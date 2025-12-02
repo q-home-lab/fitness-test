@@ -12,3 +12,7 @@ README.md
 *.md
 .vscode
 .idea
+# IMPORTANTE: Los archivos SQL de migraciones DEBEN incluirse en el build
+# drizzle/*.sql  <-- Esta línea estaba excluyendo las migraciones necesarias
+# !drizzle/meta
+

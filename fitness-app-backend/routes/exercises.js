@@ -7,12 +7,13 @@ const authenticateToken = require('./authMiddleware');
 
 const { db } = require('../db/db_config'); // Conexión a DB
 const { exercises, users } = require('../db/schema'); // Tablas a usar
-const { eq, ilike, asc, sql, or } = require('drizzle-orm');
+const { eq, ilike, asc, sql, or, count, and } = require('drizzle-orm');
 const axios = require('axios');
 const logger = require('../utils/logger');
 const { getOrSetCache, invalidateCache } = require('../utils/cache');
 const { generalLimiter } = require('../middleware/rateLimiter');
 const { routeValidations, handleValidationErrors, commonValidations } = require('../middleware/validation');
+const asyncHandler = require('../middleware/asyncHandler');
 
 // URL base de la API de wger (pública, no requiere autenticación)
 const WGER_API_BASE = 'https://wger.de/api/v2';
@@ -25,16 +26,15 @@ router.post('/',
     authenticateToken,
     routeValidations.createExercise,
     handleValidationErrors,
-    async (req, res) => {
-    // Solo necesitamos el user_id para autenticar que es un usuario válido
-    const user_id = req.user.id; 
-    const { name, category, default_calories_per_minute, gif_url } = req.body;
+    asyncHandler(async (req, res) => {
+        // Solo necesitamos el user_id para autenticar que es un usuario válido
+        const user_id = req.user.id; 
+        const { name, category, default_calories_per_minute, gif_url } = req.body;
 
-    if (!name || !category) {
-        return res.status(400).json({ error: 'El nombre y la categoría del ejercicio son obligatorios.' });
-    }
+        if (!name || !category) {
+            return res.status(400).json({ error: 'El nombre y la categoría del ejercicio son obligatorios.' });
+        }
 
-    try {
         // 1. Insertar el nuevo ejercicio.
         const newExercise = await db.insert(exercises).values({
             name: name,
@@ -54,18 +54,8 @@ router.post('/',
             message: 'Ejercicio creado y añadido al catálogo.',
             exercise: newExercise[0]
         });
-
-    } catch (error) {
-        // Manejar error de unicidad (si el ejercicio ya existe)
-        // El error puede estar en error.code o error.cause.code dependiendo de cómo Drizzle lo envuelve
-        const errorCode = error.code || error.cause?.code;
-        if (errorCode === '23505') { // Código de error de Drizzle/Postgres para 'unique_violation'
-            return res.status(409).json({ error: 'Ya existe un ejercicio con este nombre.' });
-        }
-        logger.error('Error al crear ejercicio:', { error: error.message, stack: error.stack, user_id });
-        return res.status(500).json({ error: 'Error interno del servidor al crear el ejercicio.' });
-    }
-});
+    })
+);
 
 
 // --- 2. GET /api/exercises ---
@@ -384,10 +374,13 @@ router.get('/search', authenticateToken, async (req, res) => {
     }
 
     try {
-        // Primero buscar en la base de datos local (prioridad)
+        // Primero buscar en la base de datos local (prioridad) - solo ejercicios públicos
         const localResults = await db.select()
             .from(exercises)
-            .where(ilike(exercises.name, `%${name.trim()}%`))
+            .where(and(
+                ilike(exercises.name, `%${name.trim()}%`),
+                eq(exercises.is_public, true)
+            ))
             .orderBy(asc(exercises.name))
             .limit(20); // Aumentar límite para priorizar resultados locales
         
@@ -661,16 +654,19 @@ router.get('/by-muscle-group', authenticateToken, async (req, res) => {
         const keywords = muscleGroupKeywords[normalizedGroup] || [];
         let localResults = [];
         
-        // Buscar ejercicios locales que coincidan con las palabras clave
+        // Buscar ejercicios locales que coincidan con las palabras clave y sean públicos
         if (keywords.length > 0) {
             const searchConditions = keywords.map(keyword => 
                 ilike(exercises.name, `%${keyword}%`)
             );
             
-            // Usar OR para buscar cualquier palabra clave
+            // Usar OR para buscar cualquier palabra clave Y filtrar por is_public = true
             localResults = await db.select()
                 .from(exercises)
-                .where(or(...searchConditions))
+                .where(and(
+                    or(...searchConditions),
+                    eq(exercises.is_public, true)
+                ))
                 .orderBy(asc(exercises.name))
                 .limit(30);
         }

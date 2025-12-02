@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import MuscleGroupSections from './MuscleGroupSections';
+import logger from '../utils/logger';
 
 const RoutineExerciseForm = ({ selectedExercise, onExerciseSelect, exerciseForm, setExerciseForm }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -38,7 +39,7 @@ const RoutineExerciseForm = ({ selectedExercise, onExerciseSelect, exerciseForm,
                 
                 setSearchResults(filteredExercises.slice(0, 10));
             } catch (error) {
-                console.error('Error en la búsqueda:', error);
+                logger.error('Error en la búsqueda:', error);
                 setSearchResults([]);
             } finally {
                 setLoading(false);
@@ -79,7 +80,7 @@ const RoutineExerciseForm = ({ selectedExercise, onExerciseSelect, exerciseForm,
                 setVideoUrl(response.data.video_url || null);
             }
         } catch (error) {
-            console.error('Error al cargar GIF/video:', error);
+            logger.error('Error al cargar GIF/video:', error);
         } finally {
             setLoadingGif(false);
         }

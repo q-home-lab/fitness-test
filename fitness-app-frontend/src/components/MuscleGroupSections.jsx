@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import OptimizedImage from './OptimizedImage';
 import VirtualizedList from './VirtualizedList';
+import logger from '../utils/logger';
 
 const MUSCLE_GROUPS = [
     { id: 'pecho', name: 'Pecho', icon: '💪', color: 'from-red-500/20 to-pink-500/20' },
@@ -36,8 +37,8 @@ const MuscleGroupSections = ({ onExerciseSelect, selectedExercise = null }) => {
         setLoadingGroups(prev => ({ ...prev, [groupId]: true }));
         
         try {
-            const response = await api.get(`/exercises/by-muscle-group?group=${groupId}`);
-            const exercises = response.data.exercises || [];
+            const response = await api.get(`/exercises/by-muscle-group?group=${encodeURIComponent(groupId)}`);
+            const exercises = response.data?.exercises || [];
             
             // Agregar thumbnails si están disponibles
             const exercisesWithThumbnails = exercises.map(exercise => ({
@@ -50,7 +51,11 @@ const MuscleGroupSections = ({ onExerciseSelect, selectedExercise = null }) => {
                 [groupId]: exercisesWithThumbnails
             }));
         } catch (error) {
-            console.error(`Error al cargar ejercicios para ${groupId}:`, error);
+            logger.error(`Error al cargar ejercicios para ${groupId}:`, error);
+            // Si es un error 401/403, podría ser un problema de autenticación
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                logger.error('Error de autenticación al cargar ejercicios');
+            }
             setGroupExercises(prev => ({
                 ...prev,
                 [groupId]: []

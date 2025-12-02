@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from './Icons';
+import logger from '../utils/logger';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -12,28 +13,24 @@ class ErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error('Error capturado por ErrorBoundary:', error, errorInfo);
+        // Log del error usando el sistema de logging
+        logger.error('Error capturado por ErrorBoundary:', error, errorInfo);
+        
         this.setState({
             error,
             errorInfo
         });
 
         // Enviar el error a un servicio de logging (Sentry, LogRocket, etc.)
-        // En producción, descomentar y configurar:
-        // if (window.Sentry && import.meta.env.PROD) {
-        //     window.Sentry.captureException(error, { 
-        //         contexts: { 
-        //             react: { componentStack: errorInfo.componentStack } 
-        //         } 
-        //     });
-        // }
-        
-        // Logging local en desarrollo
-        if (import.meta.env.DEV) {
-            console.group('🚨 Error capturado por ErrorBoundary');
-            console.error('Error:', error);
-            console.error('Error Info:', errorInfo);
-            console.groupEnd();
+        if (typeof window !== 'undefined' && window.Sentry) {
+            window.Sentry.captureException(error, { 
+                contexts: { 
+                    react: { componentStack: errorInfo.componentStack } 
+                },
+                tags: {
+                    component: 'ErrorBoundary'
+                }
+            });
         }
     }
 
@@ -45,10 +42,10 @@ class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen bg-[#FAF3E1] dark:bg-black flex items-center justify-center p-4">
+                <div className="min-h-screen bg-[#FAF3E1] dark:bg-black flex items-center justify-center p-4" role="alert" aria-live="assertive">
                     <div className="max-w-2xl w-full bg-white dark:bg-gray-900 rounded-3xl border border-red-200 dark:border-red-800 p-8 shadow-lg">
                         <div className="text-center mb-6">
-                            <div className="flex justify-center mb-4">
+                            <div className="flex justify-center mb-4" aria-hidden="true">
                                 <Icon name="warning" className="w-16 h-16 text-red-500 dark:text-red-400" />
                             </div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -73,16 +70,18 @@ class ErrorBoundary extends React.Component {
                             </div>
                         )}
 
-                        <div className="flex gap-4 justify-center">
+                        <div className="flex gap-4 justify-center" role="group" aria-label="Acciones de recuperación">
                             <button
                                 onClick={this.handleReset}
-                                className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                                className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                aria-label="Volver al dashboard principal"
                             >
                                 Volver al Dashboard
                             </button>
                             <button
                                 onClick={() => window.location.reload()}
-                                className="px-6 py-3 bg-gray-600 dark:bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                                className="px-6 py-3 bg-gray-600 dark:bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                                aria-label="Recargar la página completa"
                             >
                                 Recargar Página
                             </button>

@@ -54,8 +54,39 @@ router.get('/routines', async (req, res) => {
             templates,
         });
     } catch (error) {
-        logger.error('Error obteniendo plantillas de rutinas:', { error: error.message, stack: error.stack, coachId });
-        return res.status(500).json({ error: 'Error interno del servidor.' });
+        // Capturar el error real de PostgreSQL si está disponible
+        // Drizzle a veces envuelve el error en error.cause
+        const pgError = error.cause || error.original || error;
+        const errorDetails = {
+            message: error.message,
+            pgCode: pgError.code,
+            pgMessage: pgError.message,
+            pgDetail: pgError.detail,
+            pgHint: pgError.hint,
+            pgWhere: pgError.where,
+            stack: error.stack,
+            coachId,
+            fullError: error.toString()
+        };
+        
+        logger.error('Error obteniendo plantillas de rutinas:', errorDetails);
+        
+        // Proporcionar un mensaje más útil al cliente
+        let userMessage = 'Error interno del servidor al cargar las plantillas.';
+        if (pgError.code === '42P01') {
+            userMessage = 'La tabla de plantillas no existe. Por favor, ejecuta las migraciones de la base de datos.';
+        } else if (pgError.code === '42703') {
+            userMessage = 'Error en el esquema de la base de datos. La columna especificada no existe.';
+        } else if (pgError.message && pgError.message.includes('relation') && pgError.message.includes('does not exist')) {
+            userMessage = 'La tabla de plantillas no existe. Por favor, ejecuta las migraciones de la base de datos.';
+        } else if (pgError.message) {
+            userMessage = `Error de base de datos: ${pgError.message}`;
+        }
+        
+        return res.status(500).json({ 
+            error: userMessage,
+            details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+        });
     }
 });
 
@@ -213,8 +244,39 @@ router.get('/diets', async (req, res) => {
             templates,
         });
     } catch (error) {
-        logger.error('Error obteniendo plantillas de dietas:', { error: error.message, stack: error.stack, coachId });
-        return res.status(500).json({ error: 'Error interno del servidor.' });
+        // Capturar el error real de PostgreSQL si está disponible
+        // Drizzle a veces envuelve el error en error.cause
+        const pgError = error.cause || error.original || error;
+        const errorDetails = {
+            message: error.message,
+            pgCode: pgError.code,
+            pgMessage: pgError.message,
+            pgDetail: pgError.detail,
+            pgHint: pgError.hint,
+            pgWhere: pgError.where,
+            stack: error.stack,
+            coachId,
+            fullError: error.toString()
+        };
+        
+        logger.error('Error obteniendo plantillas de dietas:', errorDetails);
+        
+        // Proporcionar un mensaje más útil al cliente
+        let userMessage = 'Error interno del servidor al cargar las plantillas.';
+        if (pgError.code === '42P01') {
+            userMessage = 'La tabla de plantillas no existe. Por favor, ejecuta las migraciones de la base de datos.';
+        } else if (pgError.code === '42703') {
+            userMessage = 'Error en el esquema de la base de datos. La columna especificada no existe.';
+        } else if (pgError.message && pgError.message.includes('relation') && pgError.message.includes('does not exist')) {
+            userMessage = 'La tabla de plantillas no existe. Por favor, ejecuta las migraciones de la base de datos.';
+        } else if (pgError.message) {
+            userMessage = `Error de base de datos: ${pgError.message}`;
+        }
+        
+        return res.status(500).json({ 
+            error: userMessage,
+            details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+        });
     }
 });
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import ModernNavbar from '../components/ModernNavbar';
-import BottomNavigation from '../components/BottomNavigation';
+import { AppLayout } from '@/app/layout/AppLayout';
+import { PageContainer } from '@/shared/components/layout/PageContainer';
 import api from '../services/api';
+import logger from '@/utils/logger';
 
 const ActiveWorkoutPage = () => {
     const { routineId } = useParams();
@@ -40,7 +41,7 @@ const ActiveWorkoutPage = () => {
             setRoutine(response.data.routine);
             setWorkoutStartTime(new Date());
         } catch (error) {
-            console.error('Error al cargar rutina:', error);
+            logger.error('Error al cargar rutina:', error);
             alert('Error al cargar la rutina');
             navigate('/routines');
         } finally {
@@ -50,7 +51,7 @@ const ActiveWorkoutPage = () => {
 
     const playSound = () => {
         if (audioRef.current) {
-            audioRef.current.play().catch(e => console.log('Error al reproducir sonido:', e));
+            audioRef.current.play().catch(e => logger.warn('Error al reproducir sonido:', e));
         }
     };
 
@@ -190,7 +191,7 @@ const ActiveWorkoutPage = () => {
                 handleWorkoutComplete();
             }
         } catch (error) {
-            console.error('Error al guardar ejercicio:', error);
+            logger.error('Error al guardar ejercicio:', error);
             alert('Error al guardar el ejercicio. Continuando...');
             // Continuar de todas formas
             if (currentExerciseIndex < routine.exercises.length - 1) {
@@ -220,39 +221,31 @@ const ActiveWorkoutPage = () => {
 
     if (loading) {
         return (
-            <>
-                <ModernNavbar />
-                <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-6 py-8">
-                        <div className="flex justify-center py-20">
-                            <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
+            <AppLayout>
+                <PageContainer>
+                    <div className="flex justify-center py-20">
+                        <div className="w-8 h-8 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                </main>
-                <BottomNavigation />
-            </>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
     if (!routine || routine.exercises.length === 0) {
         return (
-            <>
-                <ModernNavbar />
-                <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-6 py-8">
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-3xl p-6 text-red-600 dark:text-red-400">
-                            Esta rutina no tiene ejercicios.
-                        </div>
-                        <button
-                            onClick={() => navigate('/routines')}
-                            className="mt-4 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-                        >
-                            Volver a Rutinas
-                        </button>
+            <AppLayout>
+                <PageContainer>
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-3xl p-6 text-red-600 dark:text-red-400">
+                        Esta rutina no tiene ejercicios.
                     </div>
-                </main>
-                <BottomNavigation />
-            </>
+                    <button
+                        onClick={() => navigate('/routines')}
+                        className="mt-4 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                    >
+                        Volver a Rutinas
+                    </button>
+                </PageContainer>
+            </AppLayout>
         );
     }
 
@@ -262,10 +255,8 @@ const ActiveWorkoutPage = () => {
     const exerciseDataForCurrent = exerciseData[exerciseKey] || { sets: [] };
 
     return (
-        <>
-            <ModernNavbar />
-            <main className="min-h-screen bg-[#FAF3E1] dark:bg-black pb-24 md:pb-8 transition-colors duration-300">
-                <div className="max-w-4xl mx-auto px-4 py-6">
+        <AppLayout>
+            <PageContainer>
                     {/* Header con progreso */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-2">
@@ -455,15 +446,12 @@ const ActiveWorkoutPage = () => {
                             ))}
                         </div>
                     </div>
-                </div>
-            </main>
-            <BottomNavigation />
-            
+            </PageContainer>
             {/* Audio para notificaciones */}
             <audio ref={audioRef} preload="auto">
                 <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWi77+efTRAMUKfj8LZjHAY4kdfyzHksBSR3x/DdkEAKFF606euoVRQKRp/g8r5sIQUrgc7y2Yk2CBlou+/nn00QDFCn4/C2YxwGOJHX8sx5LAUkd8fw3ZBAC" />
             </audio>
-        </>
+        </AppLayout>
     );
 };
 

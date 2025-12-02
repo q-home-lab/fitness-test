@@ -7,6 +7,8 @@ const schema = require('../db/schema');
 const { dailyLogs, dailyExercises } = schema;
 const { eq, and } = require('drizzle-orm');
 const logger = require('../utils/logger');
+const asyncHandler = require('../middleware/asyncHandler');
+const { routeValidations, handleValidationErrors } = require('../middleware/validation');
 
 // Helper para obtener o crear log por fecha
 async function getOrCreateDailyLogByDate(user_id, date) {
@@ -43,22 +45,25 @@ async function getOrCreateDailyLog(user_id) {
 }
 
 // POST /api/workouts/log – register a completed exercise for today
-router.post('/log', authenticateToken, async (req, res) => {
-    const user_id = req.user.id;
-    const {
-        exercise_id,
-        sets_done,
-        reps_done,
-        duration_minutes,
-        weight_kg,
-        burned_calories,
-    } = req.body;
+router.post('/log', 
+    authenticateToken,
+    routeValidations.logWorkout || ((req, res, next) => next()), // Validación si existe
+    handleValidationErrors,
+    asyncHandler(async (req, res) => {
+        const user_id = req.user.id;
+        const {
+            exercise_id,
+            sets_done,
+            reps_done,
+            duration_minutes,
+            weight_kg,
+            burned_calories,
+        } = req.body;
 
-    if (!exercise_id || !sets_done || burned_calories === undefined) {
-        return res.status(400).json({ error: 'exercise_id, sets_done y burned_calories son obligatorios.' });
-    }
+        if (!exercise_id || !sets_done || burned_calories === undefined) {
+            return res.status(400).json({ error: 'exercise_id, sets_done y burned_calories son obligatorios.' });
+        }
 
-    try {
         const log_id = await getOrCreateDailyLog(user_id);
         
         // Insertar el ejercicio
@@ -94,10 +99,7 @@ router.post('/log', authenticateToken, async (req, res) => {
             message: 'Ejercicio registrado en el log diario.',
             dailyExercise: newEntry[0],
         });
-    } catch (error) {
-        logger.error('Error al registrar ejercicio en log diario:', { error: error.message, stack: error.stack, user_id });
-        return res.status(500).json({ error: 'Error interno del servidor al registrar el ejercicio.' });
-    }
-});
+    })
+);
 
 module.exports = router;
